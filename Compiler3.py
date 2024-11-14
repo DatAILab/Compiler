@@ -26,7 +26,7 @@ if st.button("Execute SQL"):
                     # Display the result in a more readable format
                     if response.data:
                         for row in response.data:
-                            st.json(row['result'])  # Display each row's result
+                            st.write(row)  # Display each row's result
                     else:
                         st.info("No results found.")
                 else:
