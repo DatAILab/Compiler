@@ -44,10 +44,12 @@ if st.button("Execute SQL"):
                     st.info("No results found.")
             else:
                 response = supabase.rpc("execute_non_returning_sql", {"query": sql_query}).execute()
-                if response.error is None:
+
+                # Check if the response indicates success
+                if response.status_code == 200:  # Assuming 200 indicates success
                     st.success("Query executed successfully!")
                 else:
-                    st.error(f"Error executing query: {response.error}")
+                    st.error(f"Error executing query: {response.message}")  # Adjust based on actual response structure
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
     else:
