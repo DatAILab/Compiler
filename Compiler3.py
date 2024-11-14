@@ -18,13 +18,21 @@ sql_query = st.text_area("Write your SQL query here:", height=200)
 if st.button("Execute SQL"):
     if sql_query.strip():
         try:
-            # Execute the SQL query
-            response = supabase.rpc("execute_sql", {"query": sql_query}).execute()
-            if response.status_code == 200:
-                st.success("Query executed successfully!")
-                st.json(response.data)  # Display the result in JSON format
+            # Check if the query is a SELECT statement
+            if sql_query.strip().upper().startswith("SELECT"):
+                response = supabase.rpc("execute_returning_sql", {"query": sql_query}).execute()
+                if response.status_code == 200:
+                    st.success("Query executed successfully!")
+                    st.json(response.data)  # Display the result in JSON format
+                else:
+                    st.error(f"Error executing query: {response.error}")
             else:
-                st.error(f"Error executing query: {response.error}")
+                # For non-SELECT queries (like CREATE, INSERT, UPDATE, DELETE)
+                response = supabase.rpc("execute_non_returning_sql", {"query": sql_query}).execute()
+                if response.status_code == 200:
+                    st.success("Query executed successfully!")
+                else:
+                    st.error(f"Error executing query: {response.error}")
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
     else:
