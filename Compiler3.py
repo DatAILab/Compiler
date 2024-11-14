@@ -17,25 +17,25 @@ sql_query = st.text_area("Write your SQL query here:", height=200)
 
 # Execute button
 if st.button("Execute SQL"):
-    if sql_query.strip():
-        try:
-            # Check if the query is a SELECT statement
-            if sql_query.strip().upper().startswith("SELECT"):
-                response = supabase.rpc("execute_returning_sql", {"query": sql_query}).execute()
+   if sql_query.strip():
+       try:
+           # Check if the query is a SELECT statement
+           if sql_query.strip().upper().startswith("<span style='color:blue'>SELECT</span>"):
+               response = supabase.rpc("execute_returning_sql", {"query": sql_query}).execute()
 
-                if response.data is not None:
-                    st.success("Query executed successfully!")
-                    df = pd.DataFrame(response.data)
-                    st.dataframe(df)
-                else:
-                    st.info("No results found.")
-            else:
-                response = supabase.rpc("execute_non_returning_sql", {"query": sql_query}).execute()
-                if response.error is None:
-                    st.success("Query executed successfully!")
-                else:
-                    st.error(f"Error executing query: {response.error}")
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-    else:
-        st.warning("Please enter a SQL query.")
+               if response.data is not None:
+                   st.success("Query executed successfully!")
+                   df = pd.DataFrame(response.data)
+                   st.dataframe(df)
+               else:
+                   st.info("No results found.")
+           else:
+               response = supabase.rpc("execute_non_returning_sql", {"query": sql_query}).execute()
+               if response.error is None:
+                   st.success("Query executed successfully!")
+               else:
+                   st.error(f"Error executing query: {response.error}")
+       except Exception as e:
+           st.error(f"An error occurred: {str(e)}")
+   else:
+       st.warning("Please enter a SQL query.")
