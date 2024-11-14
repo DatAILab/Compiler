@@ -9,28 +9,41 @@ SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 # Streamlit app title
-st.title("SQL Code Executor")
+st.title("Supabase Database Management")
 
-# SQL input
-sql_code = st.text_area("Enter your SQL code:", height=200)
+# Section for adding a new item
+st.header("Add New Item")
+name = st.text_input("Item Name")
+description = st.text_area("Item Description")
 
-# Execute button
-if st.button("Execute SQL"):
-    if sql_code.strip():
-        try:
-            # Execute the SQL query
-            response = supabase.rpc("execute_sql", {"query": sql_code}).execute()
-            st.success(f"Query executed successfully: {response.data}")
-        except Exception as e:
-            st.error(f"Error executing query: {str(e)}")
+if st.button("Add Item"):
+    if name:
+        response = supabase.table("items").insert({"name": name, "description": description}).execute()
+        if response.status_code == 201:
+            st.success("Item added successfully!")
+        else:
+            st.error("Error adding item.")
+
+# Section for retrieving items
+st.header("Retrieve Items")
+if st.button("Retrieve All Items"):
+    response = supabase.table("items").select("*").execute()
+    items = response.data
+    if items:
+        for item in items:
+            st.write(f"**ID**: {item['id']}, **Name**: {item['name']}, **Description**: {item['description']}")
     else:
-        st.warning("Please enter some SQL code.")
+        st.info("No items found.")
 
-# Create a button to validate SQL
-if st.button("Validate SQL"):
-    if sql_code.strip():
-        # This is a placeholder for validation logic
-        # In a production scenario, you would implement actual validation
-        st.info("SQL validation placeholder: Your SQL syntax seems correct!")
-    else:
-        st.warning("Please enter some SQL code to validate.")
+# Section for creating a new table (example)
+st.header("Create New Table")
+new_table_name = st.text_input("New Table Name")
+
+if st.button("Create Table"):
+    if new_table_name:
+        query = f"CREATE TABLE {new_table_name} (id SERIAL PRIMARY KEY, name TEXT NOT NULL);"
+        response = supabase.rpc("execute_sql", {"query": query}).execute()
+        if response.status_code == 200:
+            st.success(f"Table '{new_table_name}' created successfully!")
+        else:
+            st.error("Error creating table.")
