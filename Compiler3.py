@@ -23,7 +23,12 @@ if st.button("Execute SQL"):
                 response = supabase.rpc("execute_returning_sql", {"query": sql_query}).execute()
                 if response.status_code == 200:
                     st.success("Query executed successfully!")
-                    st.json(response.data)  # Display the result in JSON format
+                    # Display the result in a more readable format
+                    if response.data:
+                        for row in response.data:
+                            st.json(row['result'])  # Display each row's result
+                    else:
+                        st.info("No results found.")
                 else:
                     st.error(f"Error executing query: {response.error}")
             else:
