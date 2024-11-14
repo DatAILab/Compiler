@@ -31,7 +31,7 @@ if st.button("Execute SQL"):
                     df = pd.DataFrame(response.data)
 
                     # Display the DataFrame as a table
-                    st.table(df)  # Display results as a table
+                    st.dataframe(df)  # Display results as a DataFrame for better interactivity
                 else:
                     st.info("No results found.")
             else:
@@ -46,6 +46,3 @@ if st.button("Execute SQL"):
     else:
         st.warning("Please enter a SQL query.")
 
-# Section for displaying previous queries or results
-st.header("Previous Queries")
-# You can implement a feature to save and display previous queries if needed
