@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from supabase import create_client, Client
 
 # Supabase configuration
@@ -25,8 +26,12 @@ if st.button("Execute SQL"):
                 # Check if the response has data
                 if response.data is not None:
                     st.success("Query executed successfully!")
-                    # Display the result in a table format
-                    st.table(response.data)  # Display results as a table
+
+                    # Convert the JSON data to a DataFrame
+                    df = pd.DataFrame(response.data)
+
+                    # Display the DataFrame as a table
+                    st.table(df)  # Display results as a table
                 else:
                     st.info("No results found.")
             else:
