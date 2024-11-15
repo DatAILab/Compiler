@@ -1,9 +1,10 @@
 import streamlit as st
-from database_utils import create_database, execute_query
+from database_utils import execute_query
+import pandas as pd
 
 # Streamlit UI
-st.title("Supabase Database Creator")
-st.caption("Create and Manage Supabase Databases")
+st.title("Supabase Database Manager")
+st.caption("Manage your Supabase Databases")
 
 # Test connection
 try:
@@ -12,17 +13,6 @@ try:
     st.sidebar.success("Successfully connected to Supabase!")
 except Exception as e:
     st.sidebar.error(f"Connection failed: {str(e)}")
-
-# Create database section
-st.subheader("Create a New Database")
-database_name = st.text_input("Enter a name for the new database:", "")
-
-if st.button("Create Database"):
-    if database_name:
-        result = create_database(database_name)
-        st.success(result)
-    else:
-        st.warning("Please enter a database name.")
 
 # SQL Query Executor section
 st.subheader("SQL Query Executor")
@@ -55,38 +45,3 @@ if st.button("Execute Query"):
             st.error(result)
     else:
         st.warning("Please enter a SQL query.")
-
-# Performance metrics in sidebar
-with st.sidebar:
-    st.subheader("Performance Metrics")
-    st.metric("Cached Queries", "10 minutes")
-    if st.button("Clear Cache"):
-        st.cache_data.clear()
-        st.success("Cache cleared!")
-
-# Documentation
-with st.expander("Supabase Features & Limitations", expanded=False):
-    st.markdown("""
-    ### Supabase PostgreSQL Features:
-
-    #### Supported Operations:
-    - Full SQL support
-    - Real-time capabilities
-    - Row Level Security
-    - Foreign Keys
-    - Indexes
-    - JSON support
-
-    #### Free Tier Limits:
-    - 500MB Database
-    - Unlimited API requests
-    - 50,000 monthly active users
-    - Daily backups
-    - Social OAuth providers
-
-    #### Best Practices:
-    1. Use prepared statements for better security
-    2. Create indexes for frequently queried columns
-    3. Use appropriate data types
-    4. Implement row level security for production
-    """)
