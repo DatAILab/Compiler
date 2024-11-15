@@ -1,6 +1,5 @@
 import streamlit as st
 from database_utils import create_database, execute_query
-import pandas as pd
 
 # Streamlit UI
 st.title("Supabase Database Creator")

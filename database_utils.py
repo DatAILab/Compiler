@@ -3,7 +3,6 @@ import pandas as pd
 from supabase import Client, create_client
 import os
 from dotenv import load_dotenv
-import requests
 
 # Load environment variables
 load_dotenv()
@@ -17,14 +16,7 @@ supabase: Client = create_client(
 # Function to create a new Supabase database
 def create_database(database_name):
     try:
-        url = f"{os.getenv('SUPABASE_URL')}/rest/v1/database"
-        headers = {
-            "apikey": os.getenv('SUPABASE_KEY'),
-            "Content-Type": "application/json"
-        }
-        data = {"name": database_name}
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
+        supabase.query(f"CREATE DATABASE {database_name}").execute()
         return f"Database '{database_name}' created successfully."
     except Exception as e:
         return f"An error occurred: {str(e)}"
