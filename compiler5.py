@@ -42,7 +42,7 @@ if st.button("Execute Query"):
             else:
                 st.info("Query returned no results.")
         else:
-            st.success(result)
+            st.error(result)
     else:
         st.warning("Please enter a SQL query.")
 
@@ -54,29 +54,3 @@ with st.sidebar:
         st.cache_data.clear()
         st.success("Cache cleared!")
 
-# Documentation
-with st.expander("Supabase Features & Limitations", expanded=False):
-    st.markdown("""
-    ### Supabase PostgreSQL Features:
-
-    #### Supported Operations:
-    - Full SQL support
-    - Real-time capabilities
-    - Row Level Security
-    - Foreign Keys
-    - Indexes
-    - JSON support
-
-    #### Free Tier Limits:
-    - 500MB Database
-    - Unlimited API requests
-    - 50,000 monthly active users
-    - Daily backups
-    - Social OAuth providers
-
-    #### Best Practices:
-    1. Use prepared statements for better security
-    2. Create indexes for frequently queried columns
-    3. Use appropriate data types
-    4. Implement row level security for production
-    """)
