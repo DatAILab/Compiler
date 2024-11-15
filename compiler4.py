@@ -2,7 +2,6 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 
-
 # Function to initialize the database with sample data
 def initialize_database():
     connection = sqlite3.connect('example.db')
@@ -65,7 +64,6 @@ def initialize_database():
     finally:
         connection.close()
 
-
 # Function to execute SQL queries
 def execute_query(query):
     connection = sqlite3.connect('example.db')
@@ -88,6 +86,10 @@ def execute_query(query):
     finally:
         connection.close()
 
+# Function to create a view
+def create_view(view_name, select_query):
+    create_view_query = f"CREATE VIEW IF NOT EXISTS {view_name} AS {select_query}"
+    return execute_query(create_view_query)
 
 # Streamlit UI
 st.title("Advanced SQLite Query Executor")
@@ -149,6 +151,18 @@ if st.button("Execute Query"):
     else:
         st.warning("Please enter a SQL query.")
 
+# Create View section
+st.subheader("Create a View")
+view_name = st.text_input("Enter the name for the new view:")
+view_query = st.text_area("Enter the SELECT query for the view:", height=150)
+
+if st.button("Create View"):
+    if view_name and view_query:
+        result = create_view(view_name, view_query)
+        st.success(result)
+    else:
+        st.warning("Please enter both a view name and a SELECT query.")
+
 # Documentation section
 with st.expander("SQL Features Reference", expanded=False):
     st.markdown("""
@@ -159,6 +173,7 @@ with st.expander("SQL Features Reference", expanded=False):
     - DROP TABLE
     - ALTER TABLE
     - CREATE INDEX
+    - CREATE VIEW
 
     #### Data Manipulation Language (DML):
     - INSERT INTO
