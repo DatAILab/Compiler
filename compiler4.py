@@ -2,48 +2,76 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 
-# Function to execute SQL queries
 def execute_query(query):
     connection = sqlite3.connect('example.db')
     cursor = connection.cursor()
 
     try:
+        # Execute the query
         cursor.execute(query)
 
-        # For SELECT queries, return results as DataFrame
-        if query.strip().upper().startswith("SELECT"):
+        # Handle CREATE statements
+        if query.strip().upper().startswith("CREATE"):
+            if query.strip().upper().startswith("CREATE TABLE"):
+                st.success("Table created successfully.")
+            elif query.strip().upper().startswith("CREATE VIEW"):
+                # Create a new table for the view
+                view_name = query.strip().split(" ")[2]
+                view_query = " ".join(query.strip().split(" ")[4:])
+                view_data = execute_query(view_query)
+                view_data.to_sql(view_name, connection, index=False, if_exists="replace")
+                st.success(f"View '{view_name}' created successfully.")
+            elif query.strip().upper().startswith("CREATE PROCEDURE"):
+                procedure_name = query.strip().split(" ")[2]
+                st.success(f"Stored procedure '{procedure_name}' created successfully.")
+            else:
+                st.success("Statement executed successfully.")
+
+        # Handle SELECT queries
+        elif query.strip().upper().startswith("SELECT"):
             column_names = [description[0] for description in cursor.description]
             results = cursor.fetchall()
             df = pd.DataFrame(results, columns=column_names)
             return df
+
+        # Handle other queries
         else:
             connection.commit()
-            return "Query executed successfully."
+            st.success("Query executed successfully.")
+
     except sqlite3.Error as e:
-        return f"An error occurred: {e}"
+        st.error(f"An error occurred: {e}")
     finally:
         connection.close()
 
 # Streamlit UI
 st.title("SQLite Query Executor")
 
-# Single input area for queries, views, or stored procedures
-user_query = st.text_area("Enter your SQL query, view creation, or stored procedure:", height=300)
+# SQL query input
+user_query = st.text_area("Enter your SQL query:", height=150)
+
+# Display options
+display_option = st.radio(
+    "Choose display format:",
+    ["Static Table", "Interactive Table"],
+    horizontal=True
+)
 
 # Execute query button
-if st.button("Execute"):
+if st.button("Execute Query"):
     if user_query:
         result = execute_query(user_query)
 
         if isinstance(result, pd.DataFrame):
             st.write("Query Results:")
             if not result.empty:
-                st.dataframe(result, use_container_width=True)
+                if display_option == "Static Table":
+                    st.table(result)
+                else:
+                    st.dataframe(result, use_container_width=True)
                 st.write(f"Total rows: {len(result)}")
             else:
                 st.info("Query returned no results.")
-        else:
-            st.success(result)
     else:
         st.warning("Please enter a SQL query.")
 
@@ -51,32 +79,11 @@ if st.button("Execute"):
 with st.expander("SQL Features Reference", expanded=False):
     st.markdown("""
     ### Supported SQL Features:
-
-    - **Data Definition Language (DDL)**: CREATE TABLE, DROP TABLE, ALTER TABLE, CREATE VIEW
-    - **Data Manipulation Language (DML)**: INSERT INTO, UPDATE, DELETE, SELECT
-    - **Query Clauses**: WHERE, GROUP BY, HAVING, ORDER BY, LIMIT
-    - **Joins**: INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL JOIN
-    - **Aggregate Functions**: COUNT(), SUM(), AVG(), MIN(), MAX()
-    - **Other Features**: DISTINCT, LIKE, IN, BETWEEN, Subqueries, UNION/UNION ALL, Case statements, Date/Time functions
-    """)
-
-# Additional SQL examples
-with st.expander("More SQL Examples", expanded=False):
-    st.code("""
--- Example of creating a view
-CREATE VIEW high_salary_employees AS 
-SELECT * FROM employees WHERE salary > 70000;
-
--- Example of a parameterized query
-SELECT * FROM employees WHERE department = ?;
-
--- Example of a complex query
-SELECT 
-    e.first_name,
-    e.last_name,
-    d.dept_name,
-    e.salary
-FROM employees e
-JOIN departments d ON e.department = d.dept_name
-WHERE e.salary > 60000;
+    - CREATE TABLE
+    - CREATE VIEW
+    - CREATE PROCEDURE
+    - SELECT
+    - INSERT
+    - UPDATE
+    - DELETE
     """)
