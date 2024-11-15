@@ -13,11 +13,19 @@ supabase: Client = create_client(
     os.getenv('SUPABASE_KEY')
 )
 
+# Function to create a new Supabase database
+def create_database(database_name):
+    try:
+        supabase.create_database(database_name).execute()
+        return f"Database '{database_name}' created successfully."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
 # Function to execute SQL queries
 @st.cache_data(ttl=600)
 def execute_query(query):
     try:
-        result = supabase.table("employees").select("*").execute()
+        result = supabase.query(query).execute()
         if result.data:
             df = pd.DataFrame(result.data)
             return df
