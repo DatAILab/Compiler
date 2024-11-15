@@ -1,5 +1,6 @@
 import streamlit as st
 from database_utils import initialize_database, execute_query
+import pandas as pd
 
 # Streamlit UI
 st.title("Cloud Database Query Executor")
