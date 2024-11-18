@@ -1,7 +1,6 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-import os
 
 def get_connection(username):
     # Create a unique database for each user
@@ -22,9 +21,6 @@ def execute_query(query, username):
                 st.success("Table created successfully.")
             elif query.strip().upper().startswith("CREATE VIEW"):
                 st.success("View created successfully.")
-            elif query.strip().upper().startswith("CREATE PROCEDURE"):
-                procedure_name = query.strip().split(" ")[2]
-                st.success(f"Stored procedure '{procedure_name}' created successfully.")
             else:
                 st.success("Statement executed successfully.")
             return None  # Return None for CREATE statements
@@ -57,28 +53,13 @@ if username:
     # SQL query input
     user_query = st.text_area("Enter your SQL query:", height=150)
 
-    # Display options
-    display_option = st.radio(
-        "Choose display format:",
-        ["Static Table", "Interactive Table"],
-        horizontal=True
-    )
-
     # Execute query button
     if st.button("Execute Query"):
         if user_query:
             result = execute_query(user_query, username)
-
             if isinstance(result, pd.DataFrame):
                 st.write("Query Results:")
-                if not result.empty:
-                    if display_option == "Static Table":
-                        st.table(result)
-                    else:
-                        st.dataframe(result, use_container_width=True)
-                    st.write(f"Total rows: {len(result)}")
-                else:
-                    st.info("Query returned no results.")
+                st.dataframe(result, use_container_width=True)
         else:
             st.warning("Please enter a SQL query.")
 else:
