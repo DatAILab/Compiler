@@ -2,25 +2,39 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 
+
+def execute_select_query(connection, query):
+    """Execute a SELECT query and return results as DataFrame"""
+    cursor = connection.cursor()
+    cursor.execute(query)
+    column_names = [description[0] for description in cursor.description]
+    results = cursor.fetchall()
+    return pd.DataFrame(results, columns=column_names)
+
+
 def execute_query(query):
     connection = sqlite3.connect('example.db')
     cursor = connection.cursor()
 
     try:
-        # Execute the query
-        cursor.execute(query)
+        # Handle CREATE VIEW separately
+        if query.strip().upper().startswith("CREATE VIEW"):
+            # Extract view name and underlying query
+            parts = query.strip().split(" AS ", 1)
+            view_name = parts[0].split()[-1]
+            view_query = parts[1]
 
-        # Handle CREATE statements
-        if query.strip().upper().startswith("CREATE"):
+            # Create the view directly using SQLite
+            cursor.execute(query)
+            connection.commit()
+            st.success(f"View '{view_name}' created successfully.")
+
+        # Handle other CREATE statements
+        elif query.strip().upper().startswith("CREATE"):
+            cursor.execute(query)
+            connection.commit()
             if query.strip().upper().startswith("CREATE TABLE"):
                 st.success("Table created successfully.")
-            elif query.strip().upper().startswith("CREATE VIEW"):
-                # Create a new table for the view
-                view_name = query.strip().split(" ")[2]
-                view_query = " ".join(query.strip().split(" ")[4:])
-                view_data = execute_query(view_query)
-                view_data.to_sql(view_name, connection, index=False, if_exists="replace")
-                st.success(f"View '{view_name}' created successfully.")
             elif query.strip().upper().startswith("CREATE PROCEDURE"):
                 procedure_name = query.strip().split(" ")[2]
                 st.success(f"Stored procedure '{procedure_name}' created successfully.")
@@ -29,20 +43,20 @@ def execute_query(query):
 
         # Handle SELECT queries
         elif query.strip().upper().startswith("SELECT"):
-            column_names = [description[0] for description in cursor.description]
-            results = cursor.fetchall()
-            df = pd.DataFrame(results, columns=column_names)
-            return df
+            return execute_select_query(connection, query)
 
         # Handle other queries
         else:
+            cursor.execute(query)
             connection.commit()
             st.success("Query executed successfully.")
 
     except sqlite3.Error as e:
         st.error(f"An error occurred: {e}")
+        return None
     finally:
         connection.close()
+
 
 # Streamlit UI
 st.title("SQLite Query Executor")
