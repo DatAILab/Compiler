@@ -29,16 +29,21 @@ def init_session_state():
         st.session_state.last_executed_query = None
     if 'execution_time' not in st.session_state:
         st.session_state.execution_time = None
+    if 'query_input' not in st.session_state:
+        st.session_state.query_input = ""
 
 
 def add_to_history(query, success):
     """Add query to history with timestamp"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Limit history to last 10 queries
     st.session_state.query_history.append({
         'timestamp': timestamp,
         'query': query,
         'status': 'Success' if success else 'Failed'
     })
+    if len(st.session_state.query_history) > 10:
+        st.session_state.query_history = st.session_state.query_history[-10:]
 
 
 def execute_select_query(connection, query):
@@ -125,6 +130,9 @@ def login():
             # Simple email validation
             st.session_state.logged_in = True
             st.session_state.username = username
+            # Reset query input and history
+            st.session_state.query_input = ""
+            st.session_state.query_history = []
             # Use st.rerun() instead of experimental_rerun()
             st.rerun()
         else:
@@ -136,6 +144,7 @@ def logout():
     st.session_state.logged_in = False
     st.session_state.username = None
     st.session_state.query_history = []
+    st.session_state.query_input = ""
     # Use st.rerun() instead of experimental_rerun()
     st.rerun()
 
@@ -165,21 +174,21 @@ def main():
         if st.button("Clear History"):
             st.session_state.query_history = []
 
-        for idx, item in enumerate(reversed(st.session_state.query_history[-5:])):  # Show last 5 queries
-            with st.expander(f"Query {len(st.session_state.query_history) - idx}"):
-                st.text(f"Time: {item['timestamp']}")
-                st.text(f"Status: {item['status']}")
-                if st.button("Rerun", key=f"rerun_{idx}"):
-                    st.session_state.query_input = item['query']
-                st.code(item['query'])
+        if st.session_state.query_history:
+            for idx, item in enumerate(reversed(st.session_state.query_history[-5:])):  # Show last 5 queries
+                with st.expander(f"Query {len(st.session_state.query_history) - idx}"):
+                    st.text(f"Time: {item['timestamp']}")
+                    st.text(f"Status: {item['status']}")
+                    if st.button("Rerun", key=f"rerun_{idx}"):
+                        st.session_state.query_input = item['query']
+                    st.code(item['query'])
+        else:
+            st.info("No query history yet.")
 
     # Main area
     col1, col2 = st.columns([3, 1])
     with col1:
         # SQL query input
-        if 'query_input' not in st.session_state:
-            st.session_state.query_input = ""
-
         user_query = st.text_area(
             "Enter your SQL query:",
             value=st.session_state.query_input,
@@ -198,6 +207,9 @@ def main():
     # Execute query button
     if st.button("Execute Query"):
         if user_query:
+            # Store the current query in session state
+            st.session_state.query_input = user_query
+
             result = execute_query(user_query)
 
             if isinstance(result, pd.DataFrame):
@@ -215,6 +227,23 @@ def main():
         else:
             st.warning("Please enter a SQL query.")
 
+    # Documentation section
+    with st.expander("SQL Features Reference", expanded=False):
+        st.markdown("""
+        ### Supported SQL Features:
+        - CREATE TABLE
+        - CREATE VIEW
+        - CREATE PROCEDURE
+        - SELECT
+        - INSERT
+        - UPDATE
+        - DELETE
+
+        ### Multi-User Features:
+        - Each user has a separate SQLite database
+        - Databases are stored securely and uniquely
+        - Query history is user-specific
+        """)
 
 
 # Run the main app
