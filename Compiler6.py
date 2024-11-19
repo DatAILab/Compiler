@@ -17,8 +17,8 @@ def execute_query(query):
             response = supabase.rpc("execute_non_returning_sql", {"query": query}).execute()
 
         # Check for errors in the response
-        if response.error:
-            return f"An error occurred: {response.error.message}"
+        if response.status_code != 200:
+            return f"An error occurred: {response.data.get('message', 'Unknown error')}"
 
         # Return the results if it's a SELECT query
         return response.data if response.data else "Query executed successfully."
