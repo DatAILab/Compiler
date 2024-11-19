@@ -10,8 +10,11 @@ supabase: Client = create_client(url, key)
 # Function to execute SQL queries
 def execute_query(query):
     try:
-        # Execute the SQL query
-        response = supabase.rpc("execute_sql", {"query": query}).execute()
+        # Determine if the query is a SELECT statement
+        if query.strip().upper().startswith("SELECT"):
+            response = supabase.rpc("execute_returning_sql", {"query": query}).execute()
+        else:
+            response = supabase.rpc("execute_non_returning_sql", {"query": query}).execute()
 
         # Check for errors in the response
         if response.error:
