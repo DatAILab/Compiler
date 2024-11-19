@@ -15,13 +15,17 @@ query = st.text_input("Enter your SQL query:")
 if query:
     try:
         if query.strip().upper().startswith("SELECT"):
-            response = supabase.rpc("execute_returning_sql", {"query": query}).execute()
+            response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
         else:
-            response = supabase.rpc("execute_non_returning_sql", {"query": query}).execute()
+            response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
-        if response.data:
+        if hasattr(response, 'data') and response.data:
+            st.write("Query Results:")
             st.table(response.data)
         else:
             st.success("Query executed successfully.")
+
     except Exception as e:
         st.error(f"Error: {str(e)}")
+        st.write("Debug info:")
+        st.write(f"Query attempted: {query}")
