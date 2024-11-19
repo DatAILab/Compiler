@@ -13,15 +13,10 @@ def execute_query(query):
         # Determine if the query is a SELECT statement
         if query.strip().upper().startswith("SELECT"):
             response = supabase.rpc("execute_returning_sql", {"query": query}).execute()
+            return response.data
         else:
             response = supabase.rpc("execute_non_returning_sql", {"query": query}).execute()
-
-        # Check for errors in the response
-        if response.data is None or 'error' in response.data:
-            return f"An error occurred: {response.data.get('error', 'Unknown error')}"
-
-        # Return the results if it's a SELECT query
-        return response.data if response.data else "Query executed successfully."
+            return "Query executed successfully."
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
@@ -41,8 +36,7 @@ if st.button("Execute Query"):
         # Display the result
         if isinstance(result, list):
             st.write("Query Results:")
-            for row in result:
-                st.write(row)
+            st.table(result)  # Using st.table for better data visualization
         else:
             st.success(result)
     else:
