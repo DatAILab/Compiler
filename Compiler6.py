@@ -6,20 +6,21 @@ url = "https://tjgmipyirpzarhhmihxf.supabase.co"  # Replace with your Supabase U
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"  # Replace with your Supabase API key
 supabase: Client = create_client(url, key)
 
-
 # Function to execute SQL queries
 def execute_query(query):
     try:
         # Determine if the query is a SELECT statement
         if query.strip().upper().startswith("SELECT"):
             response = supabase.rpc("execute_returning_sql", {"query": query}).execute()
-            return response.data
+            if response.data and 'error' not in response.data:
+                return response.data  # This should now return the full table as JSON
+            else:
+                return f"An error occurred: {response.data.get('error', 'Unknown error')}"
         else:
             response = supabase.rpc("execute_non_returning_sql", {"query": query}).execute()
             return "Query executed successfully."
     except Exception as e:
         return f"An error occurred: {str(e)}"
-
 
 # Streamlit application layout
 st.title("Supabase SQL Executor")
