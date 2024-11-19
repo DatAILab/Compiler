@@ -1,115 +1,65 @@
+from supabase import create_client, Client
 import streamlit as st
-import sqlite3
-import pandas as pd
-import os
 
-def get_connection(username):
-    # Create a unique database for each user
-    db_file = f"{username}.db"
-    return sqlite3.connect(db_file)
+# Initialize Supabase client
+url = "https://tjgmipyirpzarhhmihxf.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+supabase: Client = create_client(url, key)
 
-def execute_query(query, username):
-    connection = get_connection(username)
-    cursor = connection.cursor()
+# Streamlit application layout
+st.title("SQL Query Editor")
 
-    try:
-        # Execute the query
-        cursor.execute(query)
-
-        # Handle CREATE statements
-        if query.strip().upper().startswith("CREATE"):
-            if query.strip().upper().startswith("CREATE TABLE"):
-                st.success("Table created successfully.")
-            elif query.strip().upper().startswith("CREATE VIEW"):
-                st.success("View created successfully.")
-            elif query.strip().upper().startswith("CREATE PROCEDURE"):
-                procedure_name = query.strip().split(" ")[2]
-                st.success(f"Stored procedure '{procedure_name}' created successfully.")
-            else:
-                st.success("Statement executed successfully.")
-            return None  # Return None for CREATE statements
-
-        # Handle SELECT queries
-        elif query.strip().upper().startswith("SELECT"):
-            column_names = [description[0] for description in cursor.description]
-            results = cursor.fetchall()
-            df = pd.DataFrame(results, columns=column_names)
-            return df
-
-        # Handle other queries
-        else:
-            connection.commit()
-            st.success("Query executed successfully.")
-            return None  # Return None for non-SELECT queries
-
-    except sqlite3.Error as e:
-        st.error(f"An error occurred: {e}")
-        return None
-    finally:
-        connection.close()
-
-# Streamlit UI
-st.title("SQLite Query Executor")
-
-# Initialize session state for submitted queries if not exists
+# Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
-# User input for username
-username = st.text_input("Enter your username:", "")
+# Single input field for SQL queries
+query = st.text_input("Enter your SQL query:")
 
-if username:
-    # SQL query input
-    user_query = st.text_area("Enter your SQL query:", height=150)
+# Columns for buttons
+col1, col2 = st.columns(2)
 
-    # Columns for buttons
-    col1, col2 = st.columns(2)
+with col1:
+    try_query = st.button("Try Query")
 
-    with col1:
-        try_query = st.button("Try Query")
+with col2:
+    submit_query = st.button("Submit Query")
 
-    with col2:
-        submit_query = st.button("Submit Query")
+# Try Query functionality
+if try_query and query:
+    try:
+        if query.strip().upper().startswith("SELECT"):
+            response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
+        else:
+            response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
-    # Display options
-    display_option = st.radio(
-        "Choose display format:",
-        ["Static Table", "Interactive Table"],
-        horizontal=True
-    )
-
-    # Try Query functionality
-    if try_query and user_query:
-        result = execute_query(user_query, username)
-
-        if isinstance(result, pd.DataFrame):
+        if hasattr(response, 'data') and response.data:
             st.write("Query Results:")
-            if not result.empty:
-                if display_option == "Static Table":
-                    st.table(result)
-                else:
-                    st.dataframe(result, use_container_width=True)
-                st.write(f"Total rows: {len(result)}")
-            else:
-                st.info("Query returned no results.")
+            st.table(response.data)
+        else:
+            st.success("Query executed successfully.")
 
-    # Submit Query functionality
-    if submit_query and user_query:
-        try:
-            # Add query to submitted queries list
-            st.session_state.submitted_queries.append(user_query)
-            st.success(f"Query '{user_query}' has been submitted!")
-        except Exception as e:
-            st.error(f"Error submitting query: {str(e)}")
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
+        st.write("Debug info:")
+        st.write(f"Query attempted: {query}")
 
-    # Display submitted queries
-    if st.session_state.submitted_queries:
-        st.write("### Submitted Queries:")
-        for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
-            st.write(f"{idx}. {submitted_query}")
+# Submit Query functionality
+if submit_query and query:
+    try:
+        # Add query to submitted queries list
+        st.session_state.submitted_queries.append(query)
+        st.success(f"Query '{query}' has been submitted!")
 
-    # Optional: Clear submitted queries
-    if st.button("Clear Submitted Queries"):
-        st.session_state.submitted_queries = []
-else:
-    st.warning("Please enter a username to proceed.")
+    except Exception as e:
+        st.error(f"Error submitting query: {str(e)}")
+
+# Display submitted queries
+if st.session_state.submitted_queries:
+    st.write("### Submitted Queries:")
+    for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
+        st.write(f"{idx}. {submitted_query}")
+
+# Optional: Clear submitted queries
+if st.button("Clear Submitted Queries"):
+    st.session_state.submitted_queries = []
