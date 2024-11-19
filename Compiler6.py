@@ -9,10 +9,24 @@ supabase: Client = create_client(url, key)
 # Streamlit application layout
 st.title("SQL Query Editor")
 
+# Session state to store submitted queries
+if 'submitted_queries' not in st.session_state:
+    st.session_state.submitted_queries = []
+
 # Single input field for SQL queries
 query = st.text_input("Enter your SQL query:")
 
-if query:
+# Columns for buttons
+col1, col2 = st.columns(2)
+
+with col1:
+    try_query = st.button("Try Query")
+
+with col2:
+    submit_query = st.button("Submit Query")
+
+# Try Query functionality
+if try_query and query:
     try:
         if query.strip().upper().startswith("SELECT"):
             response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
@@ -29,3 +43,23 @@ if query:
         st.error(f"Error: {str(e)}")
         st.write("Debug info:")
         st.write(f"Query attempted: {query}")
+
+# Submit Query functionality
+if submit_query and query:
+    try:
+        # Add query to submitted queries list
+        st.session_state.submitted_queries.append(query)
+        st.success(f"Query '{query}' has been submitted!")
+
+    except Exception as e:
+        st.error(f"Error submitting query: {str(e)}")
+
+# Display submitted queries
+if st.session_state.submitted_queries:
+    st.write("### Submitted Queries:")
+    for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
+        st.write(f"{idx}. {submitted_query}")
+
+# Optional: Clear submitted queries
+if st.button("Clear Submitted Queries"):
+    st.session_state.submitted_queries = []
