@@ -30,8 +30,8 @@ st.title("SQL Query Editor")
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
-# Much larger text area for SQL queries (400 pixels height)
-query = st.text_area("Enter your SQL query:", height=400)
+# Much larger text area for SQL queries (200 pixels height)
+query = st.text_area("Enter your SQL query:", height=200)
 
 # Columns for buttons
 col1, col2 = st.columns(2)
