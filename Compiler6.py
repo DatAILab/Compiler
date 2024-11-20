@@ -31,8 +31,8 @@ def is_safe_query(query: str) -> tuple[bool, str]:
     """
     query_upper = query.strip().upper()
     if re.search(r'\bDROP\b', query_upper):
-        return False, "DROP queries are not allowed for security reasons."
-    return True, "Query is safe"
+        return False, "Les requêtes DROP ne sont pas autorisées pour des raisons de sécurité."
+    return True, "La requête est sécurisée"
 
 def highlight_sql(query: str) -> str:
     """
@@ -59,14 +59,14 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 # Streamlit application layout
-st.title("SQL Query Editor")
+st.title("Editeur de requêtes SQL de Data AI Lab")
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
 # Text area for SQL queries with syntax highlighting
-query = st.text_area("Enter your SQL query:", height=200, key="sql_input")
+query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input")
 
 # Display highlighted version of the query
 if query:
@@ -80,10 +80,10 @@ if query:
 col1, col2 = st.columns(2)
 
 with col1:
-    try_query = st.button("Try Query")
+    try_query = st.button("Essayez la requête")
 
 with col2:
-    submit_query = st.button("Submit Query")
+    submit_query = st.button("Soumettre la requête")
 
 # Try Query functionality
 if try_query and query:
@@ -101,7 +101,7 @@ if try_query and query:
                 st.write("Query Results:")
                 st.table(response.data)
             else:
-                st.success("Query executed successfully.")
+                st.success("La requête a été exécutée avec succès.")
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
@@ -116,14 +116,14 @@ if submit_query and query:
     else:
         try:
             st.session_state.submitted_queries.append(query)
-            st.success(f"Query '{query}' has been submitted!")
+            st.success(f"Requête '{query}' a été envoyée!")
 
         except Exception as e:
-            st.error(f"Error submitting query: {str(e)}")
+            st.error(f"Erreur dans l'envoi de la requête : {str(e)}")
 
 # Display submitted queries with syntax highlighting
 if st.session_state.submitted_queries:
-    st.write("### Submitted Queries:")
+    st.write("### Requêtes envoyées:")
     for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
         st.markdown(f"""
             {idx}. <div class="sql-editor">
@@ -132,5 +132,5 @@ if st.session_state.submitted_queries:
         """, unsafe_allow_html=True)
 
 # Optional: Clear submitted queries
-if st.button("Clear Submitted Queries"):
+if st.button("Effacer les requêtes envoyées"):
     st.session_state.submitted_queries = []
