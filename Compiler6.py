@@ -1,42 +1,33 @@
 from supabase import create_client, Client
 import streamlit as st
 import re
-import pandas as pd
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
 supabase: Client = create_client(url, key)
 
-# Page configuration
-st.set_page_config(page_title="Data AI Lab - SQL Query Editor", page_icon=":computer:", layout="wide")
-
 # Enhanced Custom CSS for Professional Design
 st.markdown("""
     <style>
-        .stApp { 
-            background-color: #f4f6f9; 
+        /* Global Styling */
+        .stApp {
+            background-color: #f4f6f9;
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
         }
-        .stTextArea textarea { 
-            background-color: white; 
-            border: 2px solid #3498db; 
-            border-radius: 8px; 
-            font-family: 'Fira Code', 'Courier New', monospace;
+
+        /* Title Styling */
+        .title {
+            color: #2c3e50;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .stButton>button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-        .stButton>button:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+
+        /* SQL Editor Styling */
         .sql-editor {
             font-family: 'Fira Code', 'Courier New', monospace;
             background-color: #ffffff;
@@ -47,31 +38,48 @@ st.markdown("""
             white-space: pre-wrap;
             line-height: 1.6;
         }
+
+        /* SQL Keyword Highlighting */
         .sql-keyword {
             color: #2980b9;
             font-weight: 600;
         }
+
+        /* Button Styling */
+        .stButton>button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .stButton>button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Submitted Queries Styling */
+        .submitted-query {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
     </style>
 """, unsafe_allow_html=True)
-
-# Title with gradient effect
-st.markdown(
-    '<h1 style="text-align: center; color: #2c3e50; background: linear-gradient(90deg, #3498db, #2980b9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Data AI Lab - SQL Query Editor</h1>',
-    unsafe_allow_html=True)
 
 
 def is_safe_query(query: str) -> tuple[bool, str]:
     """
     Validate if the query is safe to execute.
+    Returns a tuple of (is_safe, message).
     """
     query_upper = query.strip().upper()
-
-    # Enhanced security checks
-    unsafe_keywords = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'CREATE', 'GRANT', 'REVOKE']
-    for keyword in unsafe_keywords:
-        if re.search(fr'\b{keyword}\b', query_upper):
-            return False, f"Les requêtes {keyword} ne sont pas autorisées pour des raisons de sécurité."
-
+    if re.search(r'\bDROP\b', query_upper):
+        return False, "Les requêtes DROP ne sont pas autorisées pour des raisons de sécurité."
     return True, "La requête est sécurisée"
 
 
@@ -81,7 +89,10 @@ def highlight_sql(query: str) -> str:
     """
     sql_keywords = [
         'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
-        'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER'
+        'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
+        'OUTER', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
+        'PROCEDURE', 'FUNCTION', 'RETURNS', 'RETURN', 'BEGIN', 'END', 'DECLARE', 'SET',
+        'IF', 'ELSE', 'WHILE', 'LANGUAGE', 'PLPGSQL', 'CALL'
     ]
 
     highlighted_query = query
@@ -89,7 +100,7 @@ def highlight_sql(query: str) -> str:
         pattern = r'\b' + re.escape(keyword) + r'\b'
         highlighted_query = re.sub(
             pattern,
-            f'<span style="color: #2980b9; font-weight: bold;">{keyword}</span>',
+            f'<span class="sql-keyword">{keyword}</span>',
             highlighted_query,
             flags=re.IGNORECASE
         )
@@ -97,72 +108,83 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 
-def main():
-    # Session state for queries
-    if 'submitted_queries' not in st.session_state:
-        st.session_state.submitted_queries = []
+# Streamlit application layout
+st.markdown('<h1 class="title">Data AI Lab - SQL Query Editor</h1>', unsafe_allow_html=True)
 
-    # Query input
-    query = st.text_area(
-        "Enter your SQL Query:",
-        height=200,
-        help="Example queries: 'SELECT * FROM Car' or 'SELECT name FROM Car WHERE condition'"
-    )
+# Session state to store submitted queries
+if 'submitted_queries' not in st.session_state:
+    st.session_state.submitted_queries = []
 
-    # Columns for buttons
-    col1, col2 = st.columns(2)
+# Text area for SQL queries with syntax highlighting
+query = st.text_area("Enter your SQL Query:", height=200, key="sql_input",
+                     help="Write your SQL query here. Be careful with sensitive operations.")
 
-    with col1:
-        test_query = st.button("Test Query")
+# Display highlighted version of the query
+if query:
+    st.markdown(f"""
+        <div class="sql-editor">
+            {highlight_sql(query)}
+        </div>
+    """, unsafe_allow_html=True)
 
-    with col2:
-        submit_query = st.button("Submit Query")
+# Columns for buttons with improved spacing
+col1, col2 = st.columns([1, 1])
 
-    # Test Query functionality
-    if test_query and query:
-        is_safe, message = is_safe_query(query)
+with col1:
+    try_query = st.button("Test Query", help="Execute the query to see results")
 
-        if not is_safe:
-            st.error(message)
-        else:
-            try:
-                response = supabase.table('Car').select('*').execute()
+with col2:
+    submit_query = st.button("Submit Query", help="Save the query for review")
 
-                if response.data:
-                    st.success("Query executed successfully!")
-                    st.dataframe(response.data)
-                else:
-                    st.info("Query executed, but returned no results.")
+# Try Query functionality
+if try_query and query:
+    is_safe, message = is_safe_query(query)
+    if not is_safe:
+        st.error(message)
+    else:
+        try:
+            if query.strip().upper().startswith("SELECT"):
+                response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
+            else:
+                response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
-            except Exception as e:
-                st.error(f"Error executing query: {e}")
+            if hasattr(response, 'data') and response.data:
+                st.success("Query executed successfully!")
+                st.table(response.data)
+            else:
+                st.success("Query executed successfully.")
 
-    # Submit Query functionality
-    if submit_query and query:
-        is_safe, message = is_safe_query(query)
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+            st.write("Query details:")
+            st.write(f"Attempted query: {query}")
 
-        if not is_safe:
-            st.error(message)
-        else:
+# Submit Query functionality
+if submit_query and query:
+    is_safe, message = is_safe_query(query)
+    if not is_safe:
+        st.error(message)
+    else:
+        try:
             st.session_state.submitted_queries.append(query)
-            st.success("Query submitted successfully!")
+            st.success(f"Query '{query}' has been submitted!")
 
-    # Display submitted queries
-    if st.session_state.submitted_queries:
-        st.subheader("Submitted Queries")
-        for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
-            st.markdown(f"""
-            <div style="background-color: white; border: 1px solid #e0e4e8; 
-                        border-radius: 8px; padding: 10px; margin-bottom: 10px;">
-                {idx}. {highlight_sql(submitted_query)}
+        except Exception as e:
+            st.error(f"Error submitting query: {str(e)}")
+
+# Display submitted queries with syntax highlighting
+if st.session_state.submitted_queries:
+    st.markdown("### Submitted Queries")
+    for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
+        st.markdown(f"""
+            <div class="submitted-query">
+                {idx}. <div class="sql-editor">
+                    {highlight_sql(submitted_query)}
+                </div>
             </div>
-            """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # Clear queries button
-    if st.button("Clear Submitted Queries"):
-        st.session_state.submitted_queries = []
-        st.experimental_rerun()
-
-
-if __name__ == "__main__":
-    main()
+# Optional: Clear submitted queries
+if st.button("Clear Submitted Queries"):
+    st.session_state.submitted_queries = []
+    st.experimental_rerun()
