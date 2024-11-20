@@ -7,22 +7,70 @@ url = "https://tjgmipyirpzarhhmihxf.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
 supabase: Client = create_client(url, key)
 
-# Custom CSS for SQL syntax highlighting
+# Enhanced Custom CSS for Professional Design
 st.markdown("""
     <style>
-        .sql-editor {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            white-space: pre-wrap; /* Preserve whitespace */
+        /* Global Styling */
+        .stApp {
+            background-color: #f4f6f9;
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
         }
+
+        /* Title Styling */
+        .title {
+            color: #2c3e50;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* SQL Editor Styling */
+        .sql-editor {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            background-color: #ffffff;
+            border: 1px solid #e0e4e8;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* SQL Keyword Highlighting */
         .sql-keyword {
-            color: #0066cc;
-            font-weight: bold;
+            color: #2980b9;
+            font-weight: 600;
+        }
+
+        /* Button Styling */
+        .stButton>button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .stButton>button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Submitted Queries Styling */
+        .submitted-query {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
         }
     </style>
 """, unsafe_allow_html=True)
+
 
 def is_safe_query(query: str) -> tuple[bool, str]:
     """
@@ -33,6 +81,7 @@ def is_safe_query(query: str) -> tuple[bool, str]:
     if re.search(r'\bDROP\b', query_upper):
         return False, "Les requêtes DROP ne sont pas autorisées pour des raisons de sécurité."
     return True, "La requête est sécurisée"
+
 
 def highlight_sql(query: str) -> str:
     """
@@ -58,15 +107,17 @@ def highlight_sql(query: str) -> str:
 
     return highlighted_query
 
+
 # Streamlit application layout
-st.title("Editeur de requêtes SQL de Data AI Lab")
+st.markdown('<h1 class="title">Data AI Lab - SQL Query Editor</h1>', unsafe_allow_html=True)
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
 # Text area for SQL queries with syntax highlighting
-query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input")
+query = st.text_area("Enter your SQL Query:", height=200, key="sql_input",
+                     help="Write your SQL query here. Be careful with sensitive operations.")
 
 # Display highlighted version of the query
 if query:
@@ -76,14 +127,14 @@ if query:
         </div>
     """, unsafe_allow_html=True)
 
-# Columns for buttons
-col1, col2 = st.columns(2)
+# Columns for buttons with improved spacing
+col1, col2 = st.columns([1, 1])
 
 with col1:
-    try_query = st.button("Essayez la requête")
+    try_query = st.button("Test Query", help="Execute the query to see results")
 
 with col2:
-    submit_query = st.button("Soumettre la requête")
+    submit_query = st.button("Submit Query", help="Save the query for review")
 
 # Try Query functionality
 if try_query and query:
@@ -98,15 +149,15 @@ if try_query and query:
                 response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
             if hasattr(response, 'data') and response.data:
-                st.write("Query Results:")
+                st.success("Query executed successfully!")
                 st.table(response.data)
             else:
-                st.success("La requête a été exécutée avec succès.")
+                st.success("Query executed successfully.")
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
-            st.write("Debug info:")
-            st.write(f"Query attempted: {query}")
+            st.write("Query details:")
+            st.write(f"Attempted query: {query}")
 
 # Submit Query functionality
 if submit_query and query:
@@ -116,21 +167,24 @@ if submit_query and query:
     else:
         try:
             st.session_state.submitted_queries.append(query)
-            st.success(f"Requête '{query}' a été envoyée!")
+            st.success(f"Query '{query}' has been submitted!")
 
         except Exception as e:
-            st.error(f"Erreur dans l'envoi de la requête : {str(e)}")
+            st.error(f"Error submitting query: {str(e)}")
 
 # Display submitted queries with syntax highlighting
 if st.session_state.submitted_queries:
-    st.write("### Requêtes envoyées:")
+    st.markdown("### Submitted Queries")
     for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
         st.markdown(f"""
-            {idx}. <div class="sql-editor">
-                {highlight_sql(submitted_query)}
+            <div class="submitted-query">
+                {idx}. <div class="sql-editor">
+                    {highlight_sql(submitted_query)}
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
 # Optional: Clear submitted queries
-if st.button("Effacer les requêtes envoyées"):
+if st.button("Clear Submitted Queries"):
     st.session_state.submitted_queries = []
+    st.experimental_rerun()
