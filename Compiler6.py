@@ -1,28 +1,53 @@
 from supabase import create_client, Client
 import streamlit as st
 import re
+import streamlit.components.v1 as components
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9zZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
 supabase: Client = create_client(url, key)
 
-# Custom CSS for SQL syntax highlighting
-st.markdown("""
+# HTML and JavaScript for CodeMirror
+code_mirror_html = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.css">
     <style>
-        .sql-editor {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            white-space: pre-wrap; /* Preserve whitespace */
-        }
-        .sql-keyword {
-            color: #0066cc;
-            font-weight: bold;
+        .CodeMirror {
+            border: 1px solid #eee;
+            height: auto;
         }
     </style>
-""", unsafe_allow_html=True)
+</head>
+<body>
+    <textarea id="code" name="code"></textarea>
+    <script>
+        var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+            mode: "text/x-sql",
+            lineNumbers: true,
+            extraKeys: {"Ctrl-Space": "autocomplete"},
+            hintOptions: {tables: {
+                users: ["name", "score", "birthDate"],
+                countries: ["name", "population", "size"]
+            }}
+        });
+        editor.on("change", function() {
+            const code = editor.getValue();
+            const event = new CustomEvent("codeChange", { detail: code });
+            window.dispatchEvent(event);
+        });
+    </script>
+</body>
+</html>
+"""
 
 def is_safe_query(query: str) -> tuple[bool, str]:
     """
@@ -59,22 +84,22 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 # Streamlit application layout
-st.title("SQL Query Editor")
+st.title("SQL Query Editor with Syntax Highlighting")
+
+# Create a Streamlit component for CodeMirror
+component_value = components.html(code_mirror_html, height=300, width=700, scrolling=False)
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
-# Text area for SQL queries with syntax highlighting
+# Capture the SQL query from the CodeMirror editor
 query = st.text_area("Enter your SQL query:", height=200, key="sql_input")
 
-# Display highlighted version of the query
+# Display the current SQL query
+st.write("Current SQL Query:")
 if query:
-    st.markdown(f"""
-        <div class="sql-editor">
-            {highlight_sql(query)}
-        </div>
-    """, unsafe_allow_html=True)
+    st.code(query, language='sql')
 
 # Columns for buttons
 col1, col2 = st.columns(2)
