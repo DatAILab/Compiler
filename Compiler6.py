@@ -1,6 +1,6 @@
-from supabase import create_client, Client
 import streamlit as st
 import re
+from supabase import create_client, Client
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
@@ -9,68 +9,66 @@ supabase: Client = create_client(url, key)
 
 # Enhanced Custom CSS for Professional Design
 st.markdown("""
-    <style>
-        /* Global Styling */
-        .stApp {
-            background-color: #f4f6f9;
-            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-        }
+<style>
+/* Global Styling */
+.stApp {
+    font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+}
 
-        /* Title Styling */
-        .title {
-            color: #2c3e50;
-            text-align: center;
-            font-weight: 700;
-            margin-bottom: 20px;
-            background: linear-gradient(90deg, #3498db, #2980b9);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+/* Title Styling */
+.title {
+    color: #2c3e50;
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 20px;
+    background: linear-gradient(90deg, #3498db, #2980b9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
-        /* SQL Editor Styling */
-        .sql-editor {
-            font-family: 'Fira Code', 'Courier New', monospace;
-            background-color: #ffffff;
-            border: 1px solid #e0e4e8;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            white-space: pre-wrap;
-            line-height: 1.6;
-        }
+/* SQL Editor Styling */
+.sql-editor {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    background-color: #ffffff;
+    border: 1px solid #e0e4e8;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
 
-        /* SQL Keyword Highlighting */
-        .sql-keyword {
-            color: #2980b9;
-            font-weight: 600;
-        }
+/* SQL Keyword Highlighting */
+.sql-keyword {
+    color: #2980b9;
+    font-weight: 600;
+}
 
-        /* Button Styling */
-        .stButton>button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
+/* Button Styling */
+.stButton>button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
 
-        .stButton>button:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+.stButton>button:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
 
-        /* Submitted Queries Styling */
-        .submitted-query {
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-        }
-    </style>
+/* Submitted Queries Styling */
+.submitted-query {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+</style>
 """, unsafe_allow_html=True)
-
 
 def is_safe_query(query: str) -> tuple[bool, str]:
     """
@@ -80,8 +78,7 @@ def is_safe_query(query: str) -> tuple[bool, str]:
     query_upper = query.strip().upper()
     if re.search(r'\bDROP\b', query_upper):
         return False, "DROP queries are not allowed for security reasons."
-    return True, "Query is safe."
-
+    return True, "Query is safe"
 
 def highlight_sql(query: str) -> str:
     """
@@ -107,9 +104,8 @@ def highlight_sql(query: str) -> str:
 
     return highlighted_query
 
-
 # Streamlit application layout
-st.markdown('<h1 class="title">Data AI Lab - SQL Query Editor</h1>', unsafe_allow_html=True)
+st.title("Data AI Lab - SQL Query Editor")
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
@@ -176,15 +172,16 @@ if submit_query and query:
 if st.session_state.submitted_queries:
     st.markdown("### Submitted Queries")
     for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
-        st.markdown(f"""
-            <div class="submitted-query">
-                {idx}. <div class="sql-editor">
+        with st.container():
+            st.write(f"{idx}.")
+            st.markdown(f"""
+                <div class="sql-editor">
                     {highlight_sql(submitted_query)}
                 </div>
-            </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            # Add button to re-run the query or copy it to clipboard (optional)
 
-# Optional: Clear submitted queries
+# Clear submitted queries button
 if st.button("Clear Submitted Queries"):
     st.session_state.submitted_queries = []
     st.experimental_rerun()
