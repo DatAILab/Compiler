@@ -14,7 +14,6 @@ st.markdown("""
         .stApp {
             background-color: #f4f6f9;
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
         }
 
         /* Title Styling */
@@ -37,6 +36,7 @@ st.markdown("""
             padding: 15px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             white-space: pre-wrap;
+            line-height: 1.6;
         }
 
         /* SQL Keyword Highlighting */
@@ -53,7 +53,6 @@ st.markdown("""
             border-radius: 6px;
             transition: all 0.3s ease;
             font-weight: 600;
-            padding: 10px 20px;
         }
 
         .stButton>button:hover {
@@ -68,34 +67,6 @@ st.markdown("""
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Improved Navigation Bar */
-        .navbar {
-            background-color: #2c3e50;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .navbar a {
-            color: #ecf0f1;
-            text-decoration: none;
-            font-weight: 600;
-            margin-right: 15px;
-        }
-
-        .navbar a:hover {
-            color: #3498db;
-        }
-
-        /* Footer Styling */
-        .footer {
-            text-align: center;
-            font-size: 12px;
-            color: #95a5a6;
-            margin-top: 20px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -138,16 +109,15 @@ def highlight_sql(query: str) -> str:
 
 
 # Streamlit application layout
-st.markdown('<div class="navbar"><a href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a></div>', unsafe_allow_html=True)
-st.markdown('<h1 class="title">Data AI Lab - SQL Query Editor</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="title">Data AI Lab - Éditeur de requêtes SQL</h1>', unsafe_allow_html=True)
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
 # Text area for SQL queries with syntax highlighting
-query = st.text_area("Enter your SQL Query:", height=200, key="sql_input",
-                     help="Write your SQL query here. Be careful with sensitive operations.")
+query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input",
+                     help="Écrivez votre requête SQL ici. Soyez attentif aux opérations sensibles.")
 
 # Display highlighted version of the query
 if query:
@@ -161,10 +131,10 @@ if query:
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    try_query = st.button("Test Query", help="Execute the query to see results")
+    try_query = st.button("Testez la requête", help="Exécutez la requête pour voir les résultats")
 
 with col2:
-    submit_query = st.button("Submit Query", help="Save the query for review")
+    submit_query = st.button("Soumettre la requête", help="Sauvegarder la requête pour révision")
 
 # Try Query functionality
 if try_query and query:
@@ -179,15 +149,15 @@ if try_query and query:
                 response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
             if hasattr(response, 'data') and response.data:
-                st.success("Query executed successfully!")
+                st.success("La requête a été exécutée avec succès !")
                 st.table(response.data)
             else:
-                st.success("Query executed successfully.")
+                st.success("La requête a été exécutée avec succès.")
 
         except Exception as e:
-            st.error(f"Error: {str(e)}")
-            st.write("Query details:")
-            st.write(f"Attempted query: {query}")
+            st.error(f"Erreur : {str(e)}")
+            st.write("Détails de la requête :")
+            st.write(f"Tentative de requête : {query}")
 
 # Submit Query functionality
 if submit_query and query:
@@ -197,14 +167,14 @@ if submit_query and query:
     else:
         try:
             st.session_state.submitted_queries.append(query)
-            st.success(f"Query '{query}' has been submitted!")
+            st.success(f"La requête '{query}' a été envoyée !")
 
         except Exception as e:
-            st.error(f"Error submitting query: {str(e)}")
+            st.error(f"Erreur dans l'envoi de la requête : {str(e)}")
 
 # Display submitted queries with syntax highlighting
 if st.session_state.submitted_queries:
-    st.markdown("### Submitted Queries")
+    st.markdown("### Requêtes envoyées")
     for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
         st.markdown(f"""
             <div class="submitted-query">
@@ -215,9 +185,9 @@ if st.session_state.submitted_queries:
         """, unsafe_allow_html=True)
 
 # Optional: Clear submitted queries
-if st.button("Clear Submitted Queries"):
+if st.button("Effacer les requêtes soumises"):
     st.session_state.submitted_queries = []
     st.experimental_rerun()
 
-# Footer
+
 st.markdown('<div class="footer">Data AI Lab © 2024</div>', unsafe_allow_html=True)
