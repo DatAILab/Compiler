@@ -3,8 +3,8 @@ import re
 from supabase import create_client, Client
 
 # Initialize Supabase client
-url = "https://tjgmipyirpzarhhmihxf.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+url = "https://your_supabase_url"
+key = "your_supabase_anon_key"
 supabase: Client = create_client(url, key)
 
 # Enhanced Custom CSS for Professional Design
@@ -72,8 +72,7 @@ st.markdown("""
 
 def is_safe_query(query: str) -> tuple[bool, str]:
     """
-    Validate if the query is safe to execute.
-    Returns a tuple of (is_safe, message).
+    Validates if the query is safe to execute.
     """
     query_upper = query.strip().upper()
     if re.search(r'\bDROP\b', query_upper):
@@ -82,7 +81,7 @@ def is_safe_query(query: str) -> tuple[bool, str]:
 
 def highlight_sql(query: str) -> str:
     """
-    Highlight SQL keywords in the query
+    Highlights SQL keywords in the query.
     """
     sql_keywords = [
         'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
@@ -105,7 +104,7 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 # Streamlit application layout
-st.title("Data AI Lab - SQL Query Editor")
+st.title("SQL Query Editor")
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
@@ -123,33 +122,26 @@ if query:
         </div>
     """, unsafe_allow_html=True)
 
-# Columns for buttons with improved spacing
+# Buttons for executing and submitting queries
 col1, col2 = st.columns([1, 1])
-
 with col1:
-    try_query = st.button("Test Query", help="Execute the query to see results")
-
+    try_query = st.button("Execute Query", help="Execute the query to see results")
 with col2:
     submit_query = st.button("Submit Query", help="Save the query for review")
 
-# Try Query functionality
+# Execute Query functionality
 if try_query and query:
     is_safe, message = is_safe_query(query)
     if not is_safe:
         st.error(message)
     else:
         try:
-            if query.strip().upper().startswith("SELECT"):
-                response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
-            else:
-                response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
-
-            if hasattr(response, 'data') and response.data:
+            response = supabase.rpc("execute_sql", {"sql": query}).execute()
+            if response.data:
                 st.success("Query executed successfully!")
-                st.table(response.data)
+                st.dataframe(response.data)
             else:
                 st.success("Query executed successfully.")
-
         except Exception as e:
             st.error(f"Error: {str(e)}")
             st.write("Query details:")
@@ -164,7 +156,6 @@ if submit_query and query:
         try:
             st.session_state.submitted_queries.append(query)
             st.success(f"Query '{query}' has been submitted!")
-
         except Exception as e:
             st.error(f"Error submitting query: {str(e)}")
 
@@ -179,7 +170,6 @@ if st.session_state.submitted_queries:
                     {highlight_sql(submitted_query)}
                 </div>
             """, unsafe_allow_html=True)
-            # Add button to re-run the query or copy it to clipboard (optional)
 
 # Clear submitted queries button
 if st.button("Clear Submitted Queries"):
