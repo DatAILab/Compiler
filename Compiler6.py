@@ -15,10 +15,7 @@ st.markdown("""
             background-color: #f8f9fa;
             padding: 10px;
             border-radius: 5px;
-        }
-        .stTextArea textarea {
-            font-family: 'Courier New', Courier, monospace !important;
-            line-height: 1.5 !important;
+            white-space: pre-wrap; /* Preserve whitespace */
         }
         .sql-keyword {
             color: #0066cc;
@@ -27,21 +24,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
 def is_safe_query(query: str) -> tuple[bool, str]:
     """
     Validate if the query is safe to execute.
     Returns a tuple of (is_safe, message).
     """
-    # Convert to uppercase for consistent checking
     query_upper = query.strip().upper()
-
-    # Check for DROP statements
     if re.search(r'\bDROP\b', query_upper):
         return False, "DROP queries are not allowed for security reasons."
-
     return True, "Query is safe"
-
 
 def highlight_sql(query: str) -> str:
     """
@@ -66,7 +57,6 @@ def highlight_sql(query: str) -> str:
         )
 
     return highlighted_query
-
 
 # Streamlit application layout
 st.title("SQL Query Editor")
@@ -97,9 +87,7 @@ with col2:
 
 # Try Query functionality
 if try_query and query:
-    # Validate query before execution
     is_safe, message = is_safe_query(query)
-
     if not is_safe:
         st.error(message)
     else:
@@ -122,14 +110,11 @@ if try_query and query:
 
 # Submit Query functionality
 if submit_query and query:
-    # Validate query before submission
     is_safe, message = is_safe_query(query)
-
     if not is_safe:
         st.error(message)
     else:
         try:
-            # Add query to submitted queries list
             st.session_state.submitted_queries.append(query)
             st.success(f"Query '{query}' has been submitted!")
 
