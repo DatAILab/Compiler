@@ -1,52 +1,15 @@
 import streamlit as st
-import sqlite3
-import re
+from supabase import create_client, Client
 import pandas as pd
+import re
 
 
-def init_database():
-    """Initialize SQLite database with sample data"""
-    conn = sqlite3.connect(':memory:')
-    cursor = conn.cursor()
-
-    # Create sample tables
-    cursor.execute('''
-        CREATE TABLE users (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            email TEXT,
-            age INTEGER
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE orders (
-            id INTEGER PRIMARY KEY,
-            user_id INTEGER,
-            product TEXT,
-            amount REAL
-        )
-    ''')
-
-    # Insert sample data
-    users_data = [
-        (1, 'John Doe', 'john@example.com', 30),
-        (2, 'Jane Smith', 'jane@example.com', 25),
-        (3, 'Bob Johnson', 'bob@example.com', 45)
-    ]
-
-    orders_data = [
-        (1, 1, 'Laptop', 1200.50),
-        (2, 1, 'Mouse', 50.00),
-        (3, 2, 'Keyboard', 100.00),
-        (4, 3, 'Monitor', 300.75)
-    ]
-
-    cursor.executemany('INSERT INTO users VALUES (?,?,?,?)', users_data)
-    cursor.executemany('INSERT INTO orders VALUES (?,?,?,?)', orders_data)
-
-    conn.commit()
-    return conn
+def init_supabase_connection():
+    """Initialize Supabase connection"""
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    supabase: Client = create_client(url, key)
+    return supabase
 
 
 def is_safe_query(query: str) -> tuple[bool, str]:
@@ -86,12 +49,13 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 
-def execute_query(conn, query):
+def execute_query(supabase, query):
     """
     Execute SQL query and return results
     """
     try:
-        return pd.read_sql_query(query, conn)
+        response = supabase.table('Car').select('*').execute()
+        return pd.DataFrame(response.data)
     except Exception as e:
         st.error(f"Query execution error: {e}")
         return None
@@ -99,7 +63,7 @@ def execute_query(conn, query):
 
 def main():
     # Page configuration
-    st.set_page_config(page_title="SQL Query Editor", page_icon=":computer:", layout="wide")
+    st.set_page_config(page_title="Supabase SQL Query Editor", page_icon=":car:", layout="wide")
 
     # Custom CSS
     st.markdown("""
@@ -122,36 +86,24 @@ def main():
     """, unsafe_allow_html=True)
 
     # Title
-    st.title("🖥️ Data AI Lab - SQL Query Editor")
+    st.title("🚗 Supabase Car Database Query Editor")
 
-    # Initialize database
-    conn = init_database()
+    # Initialize Supabase connection
+    try:
+        supabase = init_supabase_connection()
+    except Exception as e:
+        st.error(f"Connection error: {e}")
+        return
 
     # Session state for queries
     if 'submitted_queries' not in st.session_state:
         st.session_state.submitted_queries = []
 
-    # Example schemas
-    with st.expander("Database Schema"):
-        st.markdown("""
-        ### Users Table
-        - id (INTEGER)
-        - name (TEXT)
-        - email (TEXT)
-        - age (INTEGER)
-
-        ### Orders Table
-        - id (INTEGER)
-        - user_id (INTEGER)
-        - product (TEXT)
-        - amount (REAL)
-        """)
-
     # Query input
     query = st.text_area(
         "Enter your SQL Query:",
         height=200,
-        help="Example queries: 'SELECT * FROM users' or 'SELECT name, age FROM users WHERE age > 25'"
+        help="Example query: 'SELECT * FROM Car'"
     )
 
     # Columns for buttons
@@ -171,7 +123,7 @@ def main():
             st.error(message)
         else:
             try:
-                results = execute_query(conn, query)
+                results = execute_query(supabase, query)
 
                 if results is not None and not results.empty:
                     st.success("Query executed successfully!")
