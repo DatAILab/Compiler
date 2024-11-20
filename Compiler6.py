@@ -5,19 +5,8 @@ import streamlit.components.v1 as components
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9zZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
 supabase: Client = create_client(url, key)
-
-# Function to validate if the query is safe
-def is_safe_query(query: str) -> tuple[bool, str]:
-    """
-    Validate if the query is safe to execute.
-    Returns a tuple of (is_safe, message).
-    """
-    query_upper = query.strip().upper()
-    if re.search(r'\bDROP\b', query_upper):
-        return False, "DROP queries are not allowed for security reasons."
-    return True, "Query is safe"
 
 # HTML and JavaScript for CodeMirror
 code_mirror_html = """
@@ -60,24 +49,39 @@ code_mirror_html = """
 </html>
 """
 
-# Streamlit application layout
-st.title("SQL Query Editor with Syntax HighlightIt seems the issue is that the `is_safe_query` function is not defined in the code you provided. To fix this, you can add the `is_safe_query` function to your code, as shown below:
+def is_safe_query(query: str) -> tuple[bool, str]:
+    """
+    Validate if the query is safe to execute.
+    Returns a tuple of (is_safe, message).
+    """
+    query_upper = query.strip().upper()
+    if re.search(r'\bDROP\b', query_upper):
+        return False, "DROP queries are not allowed for security reasons."
+    return True, "Query is safe"
 
-```python
-from supabase import create_client, Client
-import streamlit as st
-import re
-import streamlit.components.v1 as components
+def highlight_sql(query: str) -> str:
+    """
+    Highlight SQL keywords in the query
+    """
+    sql_keywords = [
+        'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
+        'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
+        'OUTER', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
+        'PROCEDURE', 'FUNCTION', 'RETURNS', 'RETURN', 'BEGIN', 'END', 'DECLARE', 'SET',
+        'IF', 'ELSE', 'WHILE', 'LANGUAGE', 'PLPGSQL', 'CALL'
+    ]
 
-# Initialize Supabase client
-url = "https://tjgmipyirpzarhhmihxf.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
-supabase: Client = create_client(url, key)
+    highlighted_query = query
+    for keyword in sql_keywords:
+        pattern = r'\b' + re.escape(keyword) + r'\b'
+        highlighted_query = re.sub(
+            pattern,
+            f'<span class="sql-keyword">{keyword}</span>',
+            highlighted_query,
+            flags=re.IGNORECASE
+        )
 
-# HTML and JavaScript for CodeMirror
-code_mirror_html = """
-# (CodeMirror HTML and JavaScript code)
-"""
+    return highlighted_query
 
 # Streamlit application layout
 st.title("SQL Query Editor with Syntax Highlighting")
@@ -152,39 +156,3 @@ if st.session_state.submitted_queries:
 # Optional: Clear submitted queries
 if st.button("Clear Submitted Queries"):
     st.session_state.submitted_queries = []
-
-def is_safe_query(query: str) -> tuple[bool, str]:
-    """
-    Validate if the query is safe to execute.
-    Returns a tuple of (is_safe, message).
-    """
-    query_upper = query.strip().upper()
-    if re.search(r'\bDROP\b', query_upper):
-        return False, "DROP queries are not allowed for security reasons."
-    return True, "Query is safe"
-
-def highlight_sql(query: str) -> str:
-    """
-    Highlight SQL keywords in the query
-    """
-    sql_keywords = [
-        'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
-        'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
-        'OUTER', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
-        'PROCEDURE', 'FUNCTION', 'RETURNS', 'RETURN', 'BEGIN', 'END', 'DECLARE', 'SET',
-        'IF', 'ELSE', 'WHILE', 'LANGUAGE', 'PLPGSQL', 'CALL'
-    ]
-
-    highlighted_query = query
-    for keyword in sql_keywords:
-        pattern = r'\b' + re.escape(keyword) + r'\b'
-        highlighted_query = re.sub(
-            pattern,
-            f'<span class="sql-keyword">{keyword}</span>',
-            highlighted_query,
-            flags=re.IGNORECASE
-        )
-
-    return highlighted_query
-
-
