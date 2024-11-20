@@ -1,53 +1,76 @@
 from supabase import create_client, Client
 import streamlit as st
 import re
-import streamlit.components.v1 as components
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9zZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
 supabase: Client = create_client(url, key)
 
-# HTML and JavaScript for CodeMirror
-code_mirror_html = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>SQL Editor</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/sql/sql.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.css">
+# Enhanced Custom CSS for Professional Design
+st.markdown("""
     <style>
-        .CodeMirror {
-            border: 1px solid #eee;
-            height: auto;
+        /* Global Styling */
+        .stApp {
+            background-color: #f4f6f9;
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Title Styling */
+        .title {
+            color: #2c3e50;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* SQL Editor Styling */
+        .sql-editor {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            background-color: #ffffff;
+            border: 1px solid #e0e4e8;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* SQL Keyword Highlighting */
+        .sql-keyword {
+            color: #2980b9;
+            font-weight: 600;
+        }
+
+        /* Button Styling */
+        .stButton>button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .stButton>button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Submitted Queries Styling */
+        .submitted-query {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
         }
     </style>
-</head>
-<body>
-    <textarea id="code" name="code"></textarea>
-    <script>
-        var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
-            mode: "text/x-sql",
-            lineNumbers: true,
-            extraKeys: {"Ctrl-Space": "autocomplete"},
-            hintOptions: {tables: {
-                users: ["name", "score", "birthDate"],
-                countries: ["name", "population", "size"]
-            }}
-        });
-        editor.on("change", function() {
-            const code = editor.getValue();
-            const event = new CustomEvent("codeChange", { detail: code });
-            window.dispatchEvent(event);
-        });
-    </script>
-</body>
-</html>
-"""
+""", unsafe_allow_html=True)
+
 
 def is_safe_query(query: str) -> tuple[bool, str]:
     """
@@ -57,7 +80,8 @@ def is_safe_query(query: str) -> tuple[bool, str]:
     query_upper = query.strip().upper()
     if re.search(r'\bDROP\b', query_upper):
         return False, "DROP queries are not allowed for security reasons."
-    return True, "Query is safe"
+    return True, "Query is safe."
+
 
 def highlight_sql(query: str) -> str:
     """
@@ -83,32 +107,34 @@ def highlight_sql(query: str) -> str:
 
     return highlighted_query
 
-# Streamlit application layout
-st.title("SQL Query Editor with Syntax Highlighting")
 
-# Create a Streamlit component for CodeMirror
-component_value = components.html(code_mirror_html, height=300, width=700, scrolling=False)
+# Streamlit application layout
+st.markdown('<h1 class="title">Data AI Lab - SQL Query Editor</h1>', unsafe_allow_html=True)
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
-# Capture the SQL query from the CodeMirror editor
-query = st.text_area("Enter your SQL query:", height=200, key="sql_input")
+# Text area for SQL queries with syntax highlighting
+query = st.text_area("Enter your SQL Query:", height=200, key="sql_input",
+                     help="Write your SQL query here. Be careful with sensitive operations.")
 
-# Display the current SQL query
-st.write("Current SQL Query:")
+# Display highlighted version of the query
 if query:
-    st.code(query, language='sql')
+    st.markdown(f"""
+        <div class="sql-editor">
+            {highlight_sql(query)}
+        </div>
+    """, unsafe_allow_html=True)
 
-# Columns for buttons
-col1, col2 = st.columns(2)
+# Columns for buttons with improved spacing
+col1, col2 = st.columns([1, 1])
 
 with col1:
-    try_query = st.button("Try Query")
+    try_query = st.button("Test Query", help="Execute the query to see results")
 
 with col2:
-    submit_query = st.button("Submit Query")
+    submit_query = st.button("Submit Query", help="Save the query for review")
 
 # Try Query functionality
 if try_query and query:
@@ -123,15 +149,15 @@ if try_query and query:
                 response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
             if hasattr(response, 'data') and response.data:
-                st.write("Query Results:")
+                st.success("Query executed successfully!")
                 st.table(response.data)
             else:
                 st.success("Query executed successfully.")
 
         except Exception as e:
             st.error(f"Error: {str(e)}")
-            st.write("Debug info:")
-            st.write(f"Query attempted: {query}")
+            st.write("Query details:")
+            st.write(f"Attempted query: {query}")
 
 # Submit Query functionality
 if submit_query and query:
@@ -148,14 +174,17 @@ if submit_query and query:
 
 # Display submitted queries with syntax highlighting
 if st.session_state.submitted_queries:
-    st.write("### Submitted Queries:")
+    st.markdown("### Submitted Queries")
     for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
         st.markdown(f"""
-            {idx}. <div class="sql-editor">
-                {highlight_sql(submitted_query)}
+            <div class="submitted-query">
+                {idx}. <div class="sql-editor">
+                    {highlight_sql(submitted_query)}
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
 # Optional: Clear submitted queries
 if st.button("Clear Submitted Queries"):
     st.session_state.submitted_queries = []
+    st.experimental_rerun()
