@@ -3,8 +3,8 @@ import re
 from supabase import create_client, Client
 
 # Initialize Supabase client
-url = "https://your_supabase_url"
-key = "your_supabase_anon_key"
+url = "https://tjgmipyirpzarhhmihxf.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
 supabase: Client = create_client(url, key)
 
 # Enhanced Custom CSS for Professional Design
