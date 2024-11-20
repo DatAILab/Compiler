@@ -93,10 +93,13 @@ component_value = components.html(code_mirror_html, height=300, width=700, scrol
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
+# Capture the SQL query from the CodeMirror editor
+query = st.text_area("Enter your SQL query:", height=200, key="sql_input")
+
 # Display the current SQL query
 st.write("Current SQL Query:")
-if component_value:
-    st.code(component_value, language='sql')
+if query:
+    st.code(query, language='sql')
 
 # Columns for buttons
 col1, col2 = st.columns(2)
@@ -108,16 +111,16 @@ with col2:
     submit_query = st.button("Submit Query")
 
 # Try Query functionality
-if try_query and component_value:
-    is_safe, message = is_safe_query(component_value)
+if try_query and query:
+    is_safe, message = is_safe_query(query)
     if not is_safe:
         st.error(message)
     else:
         try:
-            if component_value.strip().upper().startswith("SELECT"):
-                response = supabase.rpc("execute_returning_sql", {"query_text": component_value}).execute()
+            if query.strip().upper().startswith("SELECT"):
+                response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
             else:
-                response = supabase.rpc("execute_non_returning_sql", {"query_text": component_value}).execute()
+                response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
             if hasattr(response, 'data') and response.data:
                 st.write("Query Results:")
@@ -128,17 +131,17 @@ if try_query and component_value:
         except Exception as e:
             st.error(f"Error: {str(e)}")
             st.write("Debug info:")
-            st.write(f"Query attempted: {component_value}")
+            st.write(f"Query attempted: {query}")
 
 # Submit Query functionality
-if submit_query and component_value:
-    is_safe, message = is_safe_query(component_value)
+if submit_query and query:
+    is_safe, message = is_safe_query(query)
     if not is_safe:
         st.error(message)
     else:
         try:
-            st.session_state.submitted_queries.append(component_value)
-            st.success(f"Query '{component_value}' has been submitted!")
+            st.session_state.submitted_queries.append(query)
+            st.success(f"Query '{query}' has been submitted!")
 
         except Exception as e:
             st.error(f"Error submitting query: {str(e)}")
