@@ -1,15 +1,63 @@
-import streamlit as st
 from supabase import create_client, Client
-import pandas as pd
+import streamlit as st
 import re
+import pandas as pd
 
+# Initialize Supabase client
+url = "https://tjgmipyirpzarhhmihxf.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+supabase: Client = create_client(url, key)
 
-def init_supabase_connection():
-    """Initialize Supabase connection"""
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
-    supabase: Client = create_client(url, key)
-    return supabase
+# Page configuration
+st.set_page_config(page_title="Data AI Lab - SQL Query Editor", page_icon=":computer:", layout="wide")
+
+# Enhanced Custom CSS for Professional Design
+st.markdown("""
+    <style>
+        .stApp { 
+            background-color: #f4f6f9; 
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        }
+        .stTextArea textarea { 
+            background-color: white; 
+            border: 2px solid #3498db; 
+            border-radius: 8px; 
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+        .stButton>button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        .stButton>button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .sql-editor {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            background-color: #ffffff;
+            border: 1px solid #e0e4e8;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .sql-keyword {
+            color: #2980b9;
+            font-weight: 600;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Title with gradient effect
+st.markdown(
+    '<h1 style="text-align: center; color: #2c3e50; background: linear-gradient(90deg, #3498db, #2980b9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Data AI Lab - SQL Query Editor</h1>',
+    unsafe_allow_html=True)
 
 
 def is_safe_query(query: str) -> tuple[bool, str]:
@@ -49,52 +97,7 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 
-def execute_query(supabase, query):
-    """
-    Execute SQL query and return results
-    """
-    try:
-        response = supabase.table('Car').select('*').execute()
-        return pd.DataFrame(response.data)
-    except Exception as e:
-        st.error(f"Query execution error: {e}")
-        return None
-
-
 def main():
-    # Page configuration
-    st.set_page_config(page_title="Supabase SQL Query Editor", page_icon=":car:", layout="wide")
-
-    # Custom CSS
-    st.markdown("""
-    <style>
-        .stApp { background-color: #f0f2f6; }
-        .stTextArea textarea { 
-            background-color: white; 
-            border: 2px solid #3498db; 
-            border-radius: 8px; 
-        }
-        .stButton>button {
-            background-color: #3498db;
-            color: white;
-            border-radius: 6px;
-        }
-        .stButton>button:hover {
-            background-color: #2980b9;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Title
-    st.title("🚗 Supabase Car Database Query Editor")
-
-    # Initialize Supabase connection
-    try:
-        supabase = init_supabase_connection()
-    except Exception as e:
-        st.error(f"Connection error: {e}")
-        return
-
     # Session state for queries
     if 'submitted_queries' not in st.session_state:
         st.session_state.submitted_queries = []
@@ -103,7 +106,7 @@ def main():
     query = st.text_area(
         "Enter your SQL Query:",
         height=200,
-        help="Example query: 'SELECT * FROM Car'"
+        help="Example queries: 'SELECT * FROM Car' or 'SELECT name FROM Car WHERE condition'"
     )
 
     # Columns for buttons
@@ -123,12 +126,12 @@ def main():
             st.error(message)
         else:
             try:
-                results = execute_query(supabase, query)
+                response = supabase.table('Car').select('*').execute()
 
-                if results is not None and not results.empty:
+                if response.data:
                     st.success("Query executed successfully!")
-                    st.dataframe(results)
-                elif results is not None:
+                    st.dataframe(response.data)
+                else:
                     st.info("Query executed, but returned no results.")
 
             except Exception as e:
@@ -149,7 +152,7 @@ def main():
         st.subheader("Submitted Queries")
         for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
             st.markdown(f"""
-            <div style="background-color: white; border: 1px solid #e0e0e0; 
+            <div style="background-color: white; border: 1px solid #e0e4e8; 
                         border-radius: 8px; padding: 10px; margin-bottom: 10px;">
                 {idx}. {highlight_sql(submitted_query)}
             </div>
