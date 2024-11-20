@@ -71,6 +71,25 @@ st.markdown("""
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
+        /* Improved Navigation Bar */
+        .navbar {
+            background-color: #2c3e50;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .navbar a {
+            color: #ecf0f1;
+            text-decoration: none;
+            font-weight: 600;
+            margin-right: 15px;
+        }
+
+        .navbar a:hover {
+            color: #3498db;
+        }
+
         /* Footer Styling */
         .footer {
             text-align: center;
@@ -119,6 +138,7 @@ def highlight_sql(query: str) -> str:
 
 
 # Streamlit application layout
+st.markdown('<div class="navbar"><a href="#home">Home</a><a href="#features">Features</a><a href="#about">About</a></div>', unsafe_allow_html=True)
 st.markdown('<h1 class="title">Data AI Lab - SQL Query Editor</h1>', unsafe_allow_html=True)
 
 # Session state to store submitted queries
