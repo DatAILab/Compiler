@@ -1,5 +1,12 @@
+from supabase import create_client, Client
 import streamlit as st
+import re
 import streamlit.components.v1 as components
+
+# Initialize Supabase client
+url = "https://tjgmipyirpzarhhmihxf.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+supabase: Client = create_client(url, key)
 
 # HTML and JavaScript for CodeMirror
 code_mirror_html = """
@@ -42,12 +49,76 @@ code_mirror_html = """
 </html>
 """
 
-# Streamlit app
+# Streamlit application layout
 st.title("SQL Query Editor with Syntax Highlighting")
 
 # Create a Streamlit component for CodeMirror
 component_value = components.html(code_mirror_html, height=300, width=700, scrolling=False)
 
+# Session state to store submitted queries
+if 'submitted_queries' not in st.session_state:
+    st.session_state.submitted_queries = []
+
 # Display the current SQL query
 st.write("Current SQL Query:")
-st.code(component_value, language='sql')
+if component_value:
+    st.code(component_value, language='sql')
+
+# Columns for buttons
+col1, col2 = st.columns(2)
+
+with col1:
+    try_query = st.button("Try Query")
+
+with col2:
+    submit_query = st.button("Submit Query")
+
+# Try Query functionality
+if try_query and component_value:
+    is_safe, message = is_safe_query(component_value)
+    if not is_safe:
+        st.error(message)
+    else:
+        try:
+            if component_value.strip().upper().startswith("SELECT"):
+                response = supabase.rpc("execute_returning_sql", {"query_text": component_value}).execute()
+            else:
+                response = supabase.rpc("execute_non_returning_sql", {"query_text": component_value}).execute()
+
+            if hasattr(response, 'data') and response.data:
+                st.write("Query Results:")
+                st.table(response.data)
+            else:
+                st.success("Query executed successfully.")
+
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+            st.write("Debug info:")
+            st.write(f"Query attempted: {component_value}")
+
+# Submit Query functionality
+if submit_query and component_value:
+    is_safe, message = is_safe_query(component_value)
+    if not is_safe:
+        st.error(message)
+    else:
+        try:
+            st.session_state.submitted_queries.append(component_value)
+            st.success(f"Query '{component_value}' has been submitted!")
+
+        except Exception as e:
+            st.error(f"Error submitting query: {str(e)}")
+
+# Display submitted queries with syntax highlighting
+if st.session_state.submitted_queries:
+    st.write("### Submitted Queries:")
+    for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
+        st.markdown(f"""
+            {idx}. <div class="sql-editor">
+                {highlight_sql(submitted_query)}
+            </div>
+        """, unsafe_allow_html=True)
+
+# Optional: Clear submitted queries
+if st.button("Clear Submitted Queries"):
+    st.session_state.submitted_queries = []
