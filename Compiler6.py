@@ -139,7 +139,7 @@ def fetch_questions():
     Fetch questions from Supabase
     """
     try:
-        response = supabase.table("Questions").select("question").execute()
+        response = supabase.table("questions").select("question").execute()
         if hasattr(response, 'data') and response.data:
             return [q['question'] for q in response.data]
         return []
@@ -153,7 +153,7 @@ def fetch_solution(question):
     Fetch solution for a specific question
     """
     try:
-        response = supabase.table("Questions").select("solution").eq("question", question).execute()
+        response = supabase.table("questions").select("solution").eq("question", question).execute()
         if hasattr(response, 'data') and response.data:
             return response.data[0]['solution']
         return None
