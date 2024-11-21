@@ -203,7 +203,11 @@ if st.button("Testez la requête", help="Exécutez la requête pour voir les ré
             normalized_user_query = normalize_query(query)
             normalized_solution = normalize_query(correct_solution)
 
-            # Check for exact match instead of similarity
+            # Debugging output to check values
+            st.write(f"Normalized User Query: '{normalized_user_query}'")
+            st.write(f"Normalized Solution: '{normalized_solution}'")
+
+            # Check for exact match
             if normalized_user_query == normalized_solution:
                 st.success("Correct answer")
             else:
