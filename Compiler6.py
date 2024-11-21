@@ -185,9 +185,9 @@ if st.session_state.submitted_queries:
         """, unsafe_allow_html=True)
 
 # Optional: Clear submitted queries
-if st.button("Effacer les requêtes soumises"):
+if st.button("Éffacer les requêtes soumises"):
     st.session_state.submitted_queries = []
-    st.experimental_rerun()
+    st.rerun()
 
 
 st.markdown('<div class="footer">Data AI Lab © 2024</div>', unsafe_allow_html=True)
