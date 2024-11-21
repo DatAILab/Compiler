@@ -195,6 +195,20 @@ supabase: Client = create_client(url, key)
 
 # Try Query functionality
 if st.button("Testez la requête", help="Exécutez la requête pour voir les résultats"):
+    # Check query solution if a question is selected
+    if selected_question != "Choisissez une question":
+        correct_solution = fetch_solution(selected_question)
+
+        if correct_solution:
+            normalized_user_query = normalize_query(query)
+            normalized_solution = normalize_query(correct_solution)
+
+            # Check for exact match instead of similarity
+            if normalized_user_query == normalized_solution:
+                st.success("Correct answer")
+            else:
+                st.warning("Vérifiez votre requête")
+
     # Execute the query
     is_safe, message = is_safe_query(query)
     if not is_safe:
