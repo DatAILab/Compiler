@@ -1,11 +1,10 @@
 from supabase import create_client, Client
 import streamlit as st
 import re
-import difflib
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+key = "your-supabase-key"  # Replace with your actual key
 supabase: Client = create_client(url, key)
 
 # Enhanced Custom CSS for Professional Design
@@ -69,114 +68,43 @@ st.markdown("""
             background-color: #f8f9fa;
             border-radius: 6px;
         }
-
-        /* Similarity Percentage Styling */
-        .similarity {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin-top: 5px;
-        }
     </style>
 """, unsafe_allow_html=True)
 
-
-def is_safe_query(query: str) -> tuple[bool, str]:
-    """
-    Validate if the query is safe to execute.
-    Returns a tuple of (is_safe, message).
-    """
-    query_upper = query.strip().upper()
-    if re.search(r'\bDROP\b', query_upper):
-        return False, "Les requêtes DROP ne sont pas autorisées pour des raisons de sécurité."
-    return True, "La requête est sécurisée"
-
-
-def highlight_sql(query: str) -> str:
-    """
-    Highlight SQL keywords in the query
-    """
-    sql_keywords = [
-        'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
-        'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
-        'OUTER', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
-        'PROCEDURE', 'FUNCTION', 'RETURNS', 'RETURN', 'BEGIN', 'END', 'DECLARE', 'SET',
-        'IF', 'ELSE', 'WHILE', 'LANGUAGE', 'PLPGSQL', 'CALL'
-    ]
-
-    highlighted_query = query
-    for keyword in sql_keywords:
-        pattern = r'\b' + re.escape(keyword) + r'\b'
-        highlighted_query = re.sub(
-            pattern,
-            f'<span class="sql-keyword">{keyword}</span>',
-            highlighted_query,
-            flags=re.IGNORECASE
-        )
-
-    return highlighted_query
-
-
-def normalize_query(query: str) -> str:
-    """
-    Normalize query for comparison
-    """
-    # Remove extra whitespaces, convert to uppercase
-    normalized = re.sub(r'\s+', ' ', query.strip().upper())
-    # Remove semicolons and trailing spaces
-    normalized = normalized.rstrip(';').strip()
-    return normalized
-
-
-def calculate_similarity(str1: str, str2: str) -> float:
-    """
-    Calculate similarity percentage between two strings
-    """
-    return difflib.SequenceMatcher(None, str1, str2).ratio() * 100
-
-
+# Function to fetch questions from Supabase
 def fetch_questions():
-    """
-    Fetch questions from Supabase
-    """
-    try:
-        response = supabase.table("questions").select("question").execute()
-        if hasattr(response, 'data') and response.data:
-            return [q['question'] for q in response.data]
-        return []
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération des questions : {str(e)}")
-        return []
+    response = supabase.from('Questions').select('question').execute()
+    return [item['question'] for item in response.data] if response.data else []
 
-
+# Function to fetch the solution for a selected question
 def fetch_solution(question):
-    """
-    Fetch solution for a specific question
-    """
-    try:
-        response = supabase.table("questions").select("solution").eq("question", question).execute()
-        if hasattr(response, 'data') and response.data:
-            return response.data[0]['solution']
-        return None
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération de la solution : {str(e)}")
-        return None
-
+    response = supabase.from('Questions').select('solution').eq('question', question).single().execute()
+    return response.data['solution'] if response.data else None
 
 # Streamlit application layout
 st.markdown('<h1 class="title">Data AI Lab - Éditeur de requêtes SQL</h1>', unsafe_allow_html=True)
 
+# Dropdown for questions
+questions = fetch_questions()
+selected_question = st.selectbox("Choisissez une question :", questions)
+
+# User input for the answer
+user_input = st.text_input("Entrez votre réponse :", "")
+
+# Button to check the answer
+if st.button("Vérifier la réponse"):
+    correct_solution = fetch_solution(selected_question)
+    if correct_solution is not None:
+        if user_input.strip() == correct_solution:
+            st.success("Correct answer")
+        else:
+            st.error("Verify your query")
+    else:
+        st.error("Erreur lors de la récupération de la solution.")
+
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
-
-# Fetch questions at the start
-questions = fetch_questions()
-
-# Dropdown for selecting questions
-selected_question = st.selectbox(
-    "Sélectionnez une question :",
-    ["Choisissez une question"] + questions
-)
 
 # Text area for SQL queries with syntax highlighting
 query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input",
@@ -191,36 +119,13 @@ if query:
     """, unsafe_allow_html=True)
 
 # Columns for buttons with improved spacing
-col1, col2, col3 = st.columns([1, 1, 1])
+col1, col2 = st.columns([1, 1])
 
 with col1:
     try_query = st.button("Testez la requête", help="Exécutez la requête pour voir les résultats")
 
 with col2:
-    verify_query = st.button("Vérifier la solution", help="Comparez votre requête avec la solution")
-
-with col3:
     submit_query = st.button("Soumettre la requête", help="Sauvegarder la requête pour révision")
-
-# Verify Query functionality
-if verify_query and selected_question != "Choisissez une question":
-    correct_solution = fetch_solution(selected_question)
-
-    if correct_solution:
-        normalized_user_query = normalize_query(query)
-        normalized_solution = normalize_query(correct_solution)
-
-        similarity_percentage = calculate_similarity(normalized_user_query, normalized_solution)
-
-        if similarity_percentage >= 90:
-            st.success(f"✅ Réponse correcte ! Similarité : {similarity_percentage:.2f}%")
-        else:
-            st.warning(f"❌ Vérifiez votre requête. Similarité : {similarity_percentage:.2f}%")
-            st.markdown(f"Solution attendue : <div class='sql-editor'>{highlight_sql(correct_solution)}</div>",
-                        unsafe_allow_html=True)
-            st.markdown(
-                f"<div class='similarity'>Conseils : Vérifiez la structure et les mots-clés de votre requête</div>",
-                unsafe_allow_html=True)
 
 # Try Query functionality
 if try_query and query:
