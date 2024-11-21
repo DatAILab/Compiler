@@ -110,9 +110,13 @@ def highlight_sql(query: str) -> str:
 
 def normalize_query(query: str) -> str:
     """
-    Normalize query for strict comparison
+    Normalize query for strict comparison:
+    1. Convert to lowercase
+    2. Remove all whitespaces
+    3. Remove semicolons
     """
-    normalized = re.sub(r'\s+', ' ', query.strip().upper())
+    normalized = query.lower()  # Convert to lowercase
+    normalized = re.sub(r'\s+', '', normalized)  # Remove all whitespaces
     normalized = normalized.rstrip(';').strip()
     return normalized
 
