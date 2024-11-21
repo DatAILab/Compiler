@@ -30,7 +30,7 @@ st.markdown("""
         /* SQL Editor Styling */
         .sql-editor {
             font-family: 'Fira Code', 'Courier New', monospace;
-            background-color: #ffffff;
+            background-color: #f0f3f6;
             border: 1px solid #e0e4e8;
             border-radius: 8px;
             padding: 15px;
@@ -41,8 +41,14 @@ st.markdown("""
 
         /* SQL Keyword Highlighting */
         .sql-keyword {
-            color: #2980b9;
+            color: #9c27b0 !important;  /* Vibrant purple for keywords */
             font-weight: 600;
+        }
+
+        /* Syntax Highlighting */
+        .highlight-sql {
+            font-family: 'Fira Code', monospace;
+            white-space: pre-wrap;
         }
 
         /* Button Styling */
@@ -85,7 +91,7 @@ def is_safe_query(query: str) -> tuple[bool, str]:
 
 def highlight_sql(query: str) -> str:
     """
-    Highlight SQL keywords in the query
+    Highlight SQL keywords in the query with dynamic styling
     """
     sql_keywords = [
         'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
@@ -115,17 +121,36 @@ st.markdown('<h1 class="title">Data AI Lab - Éditeur de requêtes SQL</h1>', un
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
 
-# Text area for SQL queries with syntax highlighting
-query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input",
-                     help="Écrivez votre requête SQL ici. Soyez attentif aux opérations sensibles.")
+# Initialize session state for current query if not exists
+if 'current_query' not in st.session_state:
+    st.session_state.current_query = ""
 
-# Display highlighted version of the query
-if query:
-    st.markdown(f"""
-        <div class="sql-editor">
-            {highlight_sql(query)}
-        </div>
-    """, unsafe_allow_html=True)
+# Custom query input with dynamic highlighting
+def sql_query_input():
+    """
+    Custom SQL query input with live highlighting
+    """
+    # Text input instead of text area
+    st.session_state.current_query = st.text_input(
+        "Entrez votre requête SQL :",
+        value=st.session_state.current_query,
+        key="sql_query_input",
+        help="Écrivez votre requête SQL ici. Les mots-clés seront mis en surbrillance."
+    )
+
+    # Display highlighted version of the query in real-time
+    if st.session_state.current_query:
+        st.markdown(f"""
+            <div class="sql-editor highlight-sql">
+                {highlight_sql(st.session_state.current_query)}
+            </div>
+        """, unsafe_allow_html=True)
+
+# Call the custom query input function
+sql_query_input()
+
+# Get the current query from session state for further processing
+query = st.session_state.current_query
 
 # Columns for buttons with improved spacing
 col1, col2 = st.columns([1, 1])
@@ -168,9 +193,11 @@ if submit_query and query:
         try:
             st.session_state.submitted_queries.append(query)
             st.success(f"La requête '{query}' a été envoyée !")
+            # Clear the current query after submission
+            st.session_state.current_query = ""
 
         except Exception as e:
-            st.error(f"Erreur dans l'envoi de la requête : {str(e)}")
+            st.error(f"Erroi dans l'envoi de la requête : {str(e)}")
 
 # Display submitted queries with syntax highlighting
 if st.session_state.submitted_queries:
@@ -185,9 +212,8 @@ if st.session_state.submitted_queries:
         """, unsafe_allow_html=True)
 
 # Optional: Clear submitted queries
-if st.button("Éffacer les requêtes soumises"):
+if st.button("Effacer les requêtes soumises"):
     st.session_state.submitted_queries = []
     st.rerun()
-
 
 st.markdown('<div class="footer">Data AI Lab © 2024</div>', unsafe_allow_html=True)
