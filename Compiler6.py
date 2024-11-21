@@ -1,7 +1,6 @@
 from supabase import create_client, Client
 import streamlit as st
 import re
-import difflib
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
@@ -120,13 +119,6 @@ def normalize_query(query: str) -> str:
     return normalized
 
 
-def calculate_similarity(str1: str, str2: str) -> float:
-    """
-    Calculate similarity percentage between two strings
-    """
-    return difflib.SequenceMatcher(None, str1, str2).ratio() * 100
-
-
 def fetch_questions():
     """
     Fetch questions from Supabase
@@ -190,15 +182,7 @@ if st.button("Testez la requête", help="Exécutez la requête pour voir les ré
         correct_solution = fetch_solution(selected_question)
 
         if correct_solution:
-            normalized_user_query = normalize_query(query)
-            normalized_solution = normalize_query(correct_solution)
-
-            similarity_percentage = calculate_similarity(normalized_user_query, normalized_solution)
-
-            if similarity_percentage >= 90:
-                st.success("Correct answer")
-            else:
-                st.warning("Vérifiez votre requête")
+            st.info(f"Solution attendue : {correct_solution}")
 
     # Execute the query
     is_safe, message = is_safe_query(query)
