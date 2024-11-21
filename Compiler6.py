@@ -1,6 +1,7 @@
 from supabase import create_client, Client
 import streamlit as st
 import re
+import difflib
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
@@ -119,6 +120,13 @@ def normalize_query(query: str) -> str:
     return normalized
 
 
+def calculate_similarity(str1: str, str2: str) -> float:
+    """
+    Calculate similarity percentage between two strings
+    """
+    return difflib.SequenceMatcher(None, str1, str2).ratio() * 100
+
+
 def fetch_questions():
     """
     Fetch questions from Supabase
@@ -175,14 +183,40 @@ if query:
         </div>
     """, unsafe_allow_html=True)
 
+from supabase import create_client, Client
+import streamlit as st
+import re
+
+# Initialize Supabase client
+url = "https://tjgmipyirpzarhhmihxf.supabase.co"
+key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+supabase: Client = create_client(url, key)
+
+
 # Try Query functionality
 if st.button("Testez la requête", help="Exécutez la requête pour voir les résultats"):
-    # Check query solution if a question is selected
-    if selected_question != "Choisissez une question":
-        correct_solution = fetch_solution(selected_question)
+    # Execute the query
+    is_safe, message = is_safe_query(query)
+    if not is_safe:
+        st.error(message)
+    else:
+        try:
+            if query.strip().upper().startswith("SELECT"):
+                response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
+            else:
+                response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
-        if correct_solution:
-            st.info(f"Solution attendue : {correct_solution}")
+            if hasattr(response, 'data') and response.data:
+                st.success("La requête a été exécutée avec succès !")
+                st.table(response.data)
+            else:
+                st.success("La requête a été exécutée avec succès.")
+
+        except Exception as e:
+            st.error(f"Erreur : {str(e)}")
+            st.write("Détails de la requête :")
+            st.write(f"Tentative de requête : {query}")
+
 
     # Execute the query
     is_safe, message = is_safe_query(query)
