@@ -183,36 +183,8 @@ if query:
         </div>
     """, unsafe_allow_html=True)
 
-from supabase import create_client, Client
-import streamlit as st
-import re
-
-# Initialize Supabase client
-url = "https://tjgmipyirpzarhhmihxf.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
-supabase: Client = create_client(url, key)
-
-
 # Try Query functionality
 if st.button("Testez la requête", help="Exécutez la requête pour voir les résultats"):
-    # Check query solution if a question is selected
-    if selected_question != "Choisissez une question":
-        correct_solution = fetch_solution(selected_question)
-
-        if correct_solution:
-            normalized_user_query = normalize_query(query)
-            normalized_solution = normalize_query(correct_solution)
-
-            # Debugging output to check values
-            st.write(f"Normalized User Query: '{normalized_user_query}'")
-            st.write(f"Normalized Solution: '{normalized_solution}'")
-
-            # Check for exact match
-            if normalized_user_query == normalized_solution:
-                st.success("Correct answer")
-            else:
-                st.warning("Vérifiez votre requête")
-
     # Execute the query
     is_safe, message = is_safe_query(query)
     if not is_safe:
