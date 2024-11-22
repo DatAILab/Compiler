@@ -108,12 +108,65 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 
+def normalize_query(query: str) -> str:
+    """
+    Normalize query for strict comparison:
+    1. Convert to lowercase
+    2. Remove all whitespaces
+    3. Remove semicolons
+    """
+    normalized = query.lower()  # Convert to lowercase
+    normalized = re.sub(r'\s+', '', normalized)  # Remove all whitespaces
+    normalized = normalized.rstrip(';').strip()
+    return normalized
+
+
+def fetch_questions():
+    """
+    Fetch questions from Supabase
+    """
+    try:
+        response = supabase.table("questions").select("question").execute()
+        if hasattr(response, 'data') and response.data:
+            return [q['question'] for q in response.data]
+        return []
+    except Exception as e:
+        st.error(f"Erreur lors de la récupération des questions : {str(e)}")
+        return []
+
+
+def is_query_correct(user_query: str, selected_question: str) -> bool:
+    """
+    Check if user query matches the solution for the selected question
+    """
+    try:
+        response = supabase.table("questions").select("solution").eq("question", selected_question).execute()
+        if hasattr(response, 'data') and response.data:
+            correct_solution = response.data[0]['solution']
+            normalized_user_query = normalize_query(user_query)
+            normalized_solution = normalize_query(correct_solution)
+            return normalized_user_query == normalized_solution
+        return False
+    except Exception as e:
+        st.error(f"Erreur lors de la vérification de la solution : {str(e)}")
+        return False
+
+
 # Streamlit application layout
 st.markdown('<h1 class="title">Data AI Lab - Éditeur de requêtes SQL</h1>', unsafe_allow_html=True)
 
 # Session state to store submitted queries
 if 'submitted_queries' not in st.session_state:
     st.session_state.submitted_queries = []
+
+# Fetch questions at the start
+questions = fetch_questions()
+
+# Dropdown for selecting questions
+selected_question = st.selectbox(
+    "Sélectionnez une question :",
+    ["Choisissez une question"] + questions
+)
 
 # Text area for SQL queries with syntax highlighting
 query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input",
@@ -127,40 +180,37 @@ if query:
         </div>
     """, unsafe_allow_html=True)
 
-# Columns for buttons with improved spacing
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    try_query = st.button("Testez la requête", help="Exécutez la requête pour voir les résultats")
-
-with col2:
-    submit_query = st.button("Soumettre la requête", help="Sauvegarder la requête pour révision")
-
 # Try Query functionality
-if try_query and query:
-    is_safe, message = is_safe_query(query)
-    if not is_safe:
-        st.error(message)
+if st.button("Testez la requête", help="Exécutez la requête pour voir les résultats"):
+    # Check if a question is selected
+    if selected_question == "Choisissez une question":
+        st.warning("Veuillez sélectionner une question.")
     else:
-        try:
-            if query.strip().upper().startswith("SELECT"):
-                response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
-            else:
-                response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
+        # Check if query is correct
+        if is_query_correct(query, selected_question):
+            st.success("Requête correcte !")
+        else:
+            st.error("La requête ne correspond pas à la solution attendue.")
 
-            if hasattr(response, 'data') and response.data:
-                st.success("La requête a été exécutée avec succès !")
-                st.table(response.data)
-            else:
-                st.success("La requête a été exécutée avec succès.")
+        # Execute the query
+        is_safe, message = is_safe_query(query)
+        if not is_safe:
+            st.error(message)
+        else:
+            try:
+                if query.strip().upper().startswith("SELECT"):
+                    response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
+                else:
+                    response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
-        except Exception as e:
-            st.error(f"Erreur : {str(e)}")
-            st.write("Détails de la requête :")
-            st.write(f"Tentative de requête : {query}")
+                if hasattr(response, 'data') and response.data:
+                    st.table(response.data)
+
+            except Exception as e:
+                st.error(f"Erreur : {str(e)}")
 
 # Submit Query functionality
-if submit_query and query:
+if st.button("Soumettre la requête", help="Sauvegarder la requête pour révision"):
     is_safe, message = is_safe_query(query)
     if not is_safe:
         st.error(message)
@@ -188,6 +238,5 @@ if st.session_state.submitted_queries:
 if st.button("Éffacer les requêtes soumises"):
     st.session_state.submitted_queries = []
     st.rerun()
-
 
 st.markdown('<div class="footer">Data AI Lab © 2024</div>', unsafe_allow_html=True)
