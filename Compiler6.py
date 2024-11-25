@@ -191,13 +191,20 @@ def normalize_query(query: str) -> str:
 
 def execute_query(query: str) -> Tuple[bool, Union[List[Dict], str], bool]:
     """
-    Execute a query and return results
+    Execute a query and return results. Handle errors gracefully.
     """
     try:
         is_select = query.strip().upper().startswith("SELECT")
         is_create_view = query.strip().upper().startswith("CREATE VIEW")
 
         if is_create_view:
+            # Check if the view already exists
+            view_name = query.split()[2]
+            response = supabase.rpc("execute_returning_sql", {"query_text": f"SELECT to_regclass('{view_name}')"}).execute()
+            if hasattr(response, 'data') and response.data and response.data[0]['to_regclass']:
+                return True, f"La vue '{view_name}' existe déjà. Veuillez choisir un autre nom.", False
+
+            # Execute the CREATE VIEW query
             response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
             return True, "Vue créée avec succès", False
         elif is_select:
