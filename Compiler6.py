@@ -6,7 +6,7 @@ from typing import Tuple, Union, List, Dict, Any
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
+key = "your_supabase_key_here"  # Replace with your actual key
 supabase: Client = create_client(url, key)
 
 # Enhanced Custom CSS for Professional Design
@@ -17,7 +17,6 @@ st.markdown("""
             background-color: #f4f6f9;
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
         }
-
         /* Title Styling */
         .title {
             color: #2c3e50;
@@ -28,7 +27,6 @@ st.markdown("""
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         /* SQL Editor Styling */
         .sql-editor {
             font-family: 'Fira Code', 'Courier New', monospace;
@@ -40,13 +38,11 @@ st.markdown("""
             white-space: pre-wrap;
             line-height: 1.6;
         }
-
         /* SQL Keyword Highlighting */
         .sql-keyword {
             color: #2980b9;
             font-weight: 600;
         }
-
         /* Button Styling */
         .stButton>button {
             background-color: #3498db;
@@ -56,13 +52,11 @@ st.markdown("""
             transition: all 0.3s ease;
             font-weight: 600;
         }
-
         .stButton>button:hover {
             background-color: #2980b9;
             transform: translateY(-2px);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-
         /* Submitted Queries Styling */
         .submitted-query {
             margin-bottom: 10px;
@@ -70,7 +64,6 @@ st.markdown("""
             background-color: #f8f9fa;
             border-radius: 6px;
         }
-
         /* Results Table Styling */
         .dataframe {
             border-collapse: collapse;
@@ -80,186 +73,37 @@ st.markdown("""
             min-width: 400px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
         }
-
         .dataframe thead tr {
             background-color: #3498db;
             color: #ffffff;
             text-align: left;
         }
-
         .dataframe th,
         .dataframe td {
             padding: 12px 15px;
         }
-
         .dataframe tbody tr {
             border-bottom: 1px solid #dddddd;
         }
-
         .dataframe tbody tr:nth-of-type(even) {
             background-color: #f3f3f3;
         }
-
         .dataframe tbody tr:last-of-type {
             border-bottom: 2px solid #3498db;
         }
     </style>
 """, unsafe_allow_html=True)
 
-
-def compare_query_results(user_result: List[Dict], solution_result: List[Dict]) -> Tuple[bool, str]:
-    """
-    Compare two query results for equality, focusing on data content rather than structure.
-    Returns (is_equal, message)
-    """
-    try:
-        # Convert results to DataFrames
-        df_user = pd.DataFrame(user_result)
-        df_solution = pd.DataFrame(solution_result)
-
-        # If either result is empty, check if both are empty
-        if df_user.empty and df_solution.empty:
-            return True, "Les résultats sont identiques (aucune donnée)"
-        elif df_user.empty or df_solution.empty:
-            return False, "Un résultat est vide alors que l'autre ne l'est pas"
-
-        # Convert DataFrames to sets of tuples for value comparison
-        user_values = set(tuple(x) for x in df_user.values.tolist())
-        solution_values = set(tuple(x) for x in df_solution.values.tolist())
-
-        if user_values == solution_values:
-            return True, "Les résultats correspondent exactement!"
-        else:
-            missing = len(solution_values - user_values)
-            extra = len(user_values - solution_values)
-
-            message = "Différences trouvées: "
-            if missing > 0:
-                message += f"{missing} lignes manquantes. "
-            if extra > 0:
-                message += f"{extra} lignes en trop."
-
-            return False, message
-
-    except Exception as e:
-        return False, f"Erreur lors de la comparaison: {str(e)}"
-
-
-def is_safe_query(query: str) -> Tuple[bool, str]:
-    """
-    Validate if the query is safe to execute.
-    """
-    query_upper = query.strip().upper()
-    if re.search(r'\bDROP\b', query_upper):
-        return False, "Les requêtes DROP ne sont pas autorisées pour des raisons de sécurité."
-    return True, "La requête est sécurisée"
-
-
-def highlight_sql(query: str) -> str:
-    """
-    Highlight SQL keywords in the query
-    """
-    sql_keywords = [
-        'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
-        'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
-        'OUTER', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
-        'VIEW', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX'
-    ]
-
-    highlighted_query = query
-    for keyword in sql_keywords:
-        pattern = r'\b' + re.escape(keyword) + r'\b'
-        highlighted_query = re.sub(
-            pattern,
-            f'<span class="sql-keyword">{keyword}</span>',
-            highlighted_query,
-            flags=re.IGNORECASE
-        )
-
-    return highlighted_query
-
-
-def normalize_query(query: str) -> str:
-    """
-    Normalize query for strict comparison
-    """
-    normalized = query.lower()
-    normalized = re.sub(r'\s+', '', normalized)
-    normalized = normalized.rstrip(';').strip()
-    return normalized
-
-
-def execute_query(query: str) -> Tuple[bool, Union[List[Dict], str], bool]:
-    """
-    Execute a query and return results
-    """
-    try:
-        is_select = query.strip().upper().startswith("SELECT")
-        is_create_view = query.strip().upper().startswith("CREATE VIEW")
-
-        if is_create_view:
-            response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
-            return True, "Vue créée avec succès", False
-        elif is_select:
-            response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
-            if not hasattr(response, 'data'):
-                return True, [], True
-
-            # Handle single-column results
-            if response.data and len(response.data[0].keys()) == 1:
-                key = list(response.data[0].keys())[0]
-                result = [{"result": row[key]} for row in response.data]
-            else:
-                result = response.data
-
-            return True, result, True
-        else:
-            response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
-            return True, "Requête exécutée avec succès", False
-    except Exception as e:
-        return False, str(e), is_select
-
-
-def is_query_correct(user_query: str, selected_question: str) -> Tuple[bool, str]:
-    """
-    Enhanced query verification
-    """
-    try:
-        # Get the solution query
-        response = supabase.table("questions").select("solution").eq("question", selected_question).execute()
-        if not hasattr(response, 'data') or not response.data:
-            return False, "Solution non trouvée"
-
-        solution_query = response.data[0]['solution']
-
-        # Handle CREATE VIEW queries
-        if user_query.strip().upper().startswith("CREATE VIEW"):
-            normalized_user = normalize_query(user_query)
-            normalized_solution = normalize_query(solution_query)
-            return normalized_user == normalized_solution, "Vérification syntaxique uniquement pour CREATE VIEW"
-
-        # Handle SELECT queries
-        success_user, result_user, is_select_user = execute_query(user_query)
-        if not success_user:
-            return False, f"Erreur dans votre requête: {result_user}"
-
-        success_solution, result_solution, is_select_solution = execute_query(solution_query)
-        if not success_solution:
-            return False, f"Erreur dans la solution: {result_solution}"
-
-        if is_select_user and is_select_solution:
-            return compare_query_results(result_user, result_solution)
-
-        return False, "Type de requête non supporté pour la comparaison"
-
-    except Exception as e:
-        return False, f"Erreur lors de la vérification: {str(e)}"
-
+# SQL Keywords for Autocomplete
+SQL_KEYWORDS = [
+    'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'TABLE',
+    'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
+    'OUTER', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
+    'VIEW', 'DISTINCT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX'
+]
 
 def fetch_questions():
-    """
-    Fetch questions from Supabase
-    """
+    """Fetch questions from Supabase"""
     try:
         response = supabase.table("questions").select("question").execute()
         if hasattr(response, 'data') and response.data:
@@ -269,6 +113,10 @@ def fetch_questions():
         st.error(f"Erreur lors de la récupération des questions : {str(e)}")
         return []
 
+def autocomplete_query(query: str) -> str:
+    """Suggest SQL keywords based on user input"""
+    suggestions = [kw for kw in SQL_KEYWORDS if kw.lower().startswith(query.lower())]
+    return suggestions
 
 # Main application layout
 st.markdown('<h1 class="title">Data AI Lab - Éditeur de requêtes SQL</h1>', unsafe_allow_html=True)
@@ -284,12 +132,19 @@ selected_question = st.selectbox(
     ["Choisissez une question"] + questions
 )
 
-# Query input
-query = st.text_area(
+# Query input with autocomplete
+query = st.text_input(
     "Entrez votre requête SQL :",
-    height=200,
     help="Écrivez votre requête SQL ici. Soyez attentif aux opérations sensibles."
 )
+
+# Display autocomplete suggestions
+if query:
+    suggestions = autocomplete_query(query)
+    if suggestions:
+        st.markdown("### Suggestions:")
+        for suggestion in suggestions:
+            st.markdown(f"- {suggestion}")
 
 # Display highlighted query
 if query:
