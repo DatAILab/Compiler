@@ -202,7 +202,7 @@ def execute_query(query: str) -> Tuple[bool, Union[List[Dict], str], bool]:
             view_name = query.split()[2]
             response = supabase.rpc("execute_returning_sql", {"query_text": f"SELECT to_regclass('{view_name}')"}).execute()
             if hasattr(response, 'data') and response.data and response.data[0]['to_regclass']:
-                return True, f"", False
+                return True, False
 
             # Execute the CREATE VIEW query
             response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
