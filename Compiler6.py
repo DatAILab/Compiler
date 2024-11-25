@@ -61,7 +61,7 @@ def get_table_and_column_names(supabase: Client):
 
 def sql_autocomplete(query: str, supabase: Client):
     """
-    Provide autocomplete suggestions for SQL queries
+    Provide comprehensive autocomplete suggestions for SQL queries based on the first letter
     """
     # Get dynamic suggestions
     dynamic_suggestions = get_table_and_column_names(supabase)
@@ -70,11 +70,37 @@ def sql_autocomplete(query: str, supabase: Client):
     words = query.split()
     last_word = words[-1] if words else ""
 
-    # Filter suggestions that start with the last word
-    suggestions = [
+    # Comprehensive suggestion mapping
+    comprehensive_suggestions = {
+        's': ['select', 'sum', 'substring'],
+        'f': ['from', 'first'],
+        'w': ['where', 'with'],
+        'a': ['and', 'avg', 'as'],
+        'o': ['order by', 'or'],
+        'g': ['group by'],
+        'h': ['having'],
+        'l': ['left join', 'limit', 'like'],
+        'i': ['inner join', 'insert', 'is'],
+        'j': ['join'],
+        'u': ['update', 'union']
+    }
+
+    # Combine dynamic and predefined suggestions
+    suggestions = []
+
+    # If last word is empty or a single letter, use comprehensive suggestions
+    if not last_word or len(last_word) == 1:
+        first_letter = last_word.lower()
+        suggestions = comprehensive_suggestions.get(first_letter, [])
+
+    # Add dynamic suggestions that start with the last word
+    suggestions.extend([
         sug for sug in dynamic_suggestions
         if sug.lower().startswith(last_word.lower())
-    ]
+    ])
+
+    # Remove duplicates while preserving order
+    suggestions = list(dict.fromkeys(suggestions))
 
     return suggestions
 
