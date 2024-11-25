@@ -33,74 +33,30 @@ def fetch_questions():
 
 
 def get_table_and_column_names(supabase: Client):
-    """
-    Fetch table and column names from the database with fallback
-    """
     tables = []
     columns = []
     try:
-        # Fetch table names from questions table
         response = supabase.table("questions").select("question").execute()
         if hasattr(response, 'data'):
-            # Extract potential table and column keywords from questions
             for item in response.data:
                 words = item['question'].lower().split()
                 tables.extend([word for word in words if word.isalnum()])
-
-        # Add predefined tables and columns as fallback
         tables.extend(['users', 'products', 'orders', 'customers'])
-        columns.extend([
-            'id', 'name', 'email', 'price', 'quantity',
-            'date', 'status', 'category', 'total'
-        ])
+        columns.extend(['id', 'name', 'email', 'price', 'quantity', 'date', 'status', 'category', 'total'])
     except Exception as e:
-        st.error(f"Error fetching suggestions: {e}")
-
+        print(f"Error fetching suggestions: {e}")
     return list(set(SQL_KEYWORDS + tables + columns))
 
 
 def sql_autocomplete(query: str, supabase: Client):
-    """
-    Provide comprehensive autocomplete suggestions for SQL queries based on the first letter
-    """
-    # Get dynamic suggestions
     dynamic_suggestions = get_table_and_column_names(supabase)
-
-    # Split the current query and get the last word
     words = query.split()
     last_word = words[-1] if words else ""
 
-    # Comprehensive suggestion mapping
-    comprehensive_suggestions = {
-        's': ['select', 'sum', 'substring'],
-        'f': ['from', 'first'],
-        'w': ['where', 'with'],
-        'a': ['and', 'avg', 'as'],
-        'o': ['order by', 'or'],
-        'g': ['group by'],
-        'h': ['having'],
-        'l': ['left join', 'limit', 'like'],
-        'i': ['inner join', 'insert', 'is'],
-        'j': ['join'],
-        'u': ['update', 'union']
-    }
-
-    # Combine dynamic and predefined suggestions
-    suggestions = []
-
-    # If last word is empty or a single letter, use comprehensive suggestions
-    if not last_word or len(last_word) == 1:
-        first_letter = last_word.lower()
-        suggestions = comprehensive_suggestions.get(first_letter, [])
-
-    # Add dynamic suggestions that start with the last word
-    suggestions.extend([
+    suggestions = [
         sug for sug in dynamic_suggestions
         if sug.lower().startswith(last_word.lower())
-    ])
-
-    # Remove duplicates while preserving order
-    suggestions = list(dict.fromkeys(suggestions))
+    ]
 
     return suggestions
 
