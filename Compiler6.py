@@ -108,14 +108,6 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 
-from supabase import create_client, Client
-import streamlit as st
-import re
-
-# Initialize Supabase client
-url = "https://your_supabase_url"  # Replace with your Supabase URL
-key = "your_supabase_key"  # Replace with your Supabase key
-supabase: Client = create_client(url, key)
 
 # Function to normalize and compare two SELECT queries
 def compare_select_queries(query1: str, query2: str) -> bool:
