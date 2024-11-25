@@ -1,8 +1,6 @@
 from supabase import create_client, Client
 import streamlit as st
 import re
-import pandas as pd
-from typing import Tuple, Union, List, Dict, Any
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
@@ -70,77 +68,11 @@ st.markdown("""
             background-color: #f8f9fa;
             border-radius: 6px;
         }
-
-        /* Results Table Styling */
-        .dataframe {
-            border-collapse: collapse;
-            margin: 25px 0;
-            font-size: 0.9em;
-            font-family: sans-serif;
-            min-width: 400px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .dataframe thead tr {
-            background-color: #3498db;
-            color: #ffffff;
-            text-align: left;
-        }
-
-        .dataframe th,
-        .dataframe td {
-            padding: 12px 15px;
-        }
-
-        .dataframe tbody tr {
-            border-bottom: 1px solid #dddddd;
-        }
-
-        .dataframe tbody tr:nth-of-type(even) {
-            background-color: #f3f3f3;
-        }
-
-        .dataframe tbody tr:last-of-type {
-            border-bottom: 2px solid #3498db;
-        }
     </style>
 """, unsafe_allow_html=True)
 
 
-def compare_query_results(user_result: List[Dict], solution_result: List[Dict]) -> Tuple[bool, str]:
-    """
-    Compare two query results for equality.
-    Returns (is_equal, message)
-    """
-    try:
-        # Convert results to DataFrames for easier comparison
-        df_user = pd.DataFrame(user_result)
-        df_solution = pd.DataFrame(solution_result)
-
-        # Sort both DataFrames to ensure consistent comparison
-        if not df_user.empty and not df_solution.empty:
-            df_user = df_user.sort_values(by=list(df_user.columns)).reset_index(drop=True)
-            df_solution = df_solution.sort_values(by=list(df_solution.columns)).reset_index(drop=True)
-
-        # Compare the DataFrames
-        if df_user.equals(df_solution):
-            return True, "Les résultats correspondent exactement!"
-        else:
-            differences = []
-            if df_user.shape != df_solution.shape:
-                differences.append(
-                    f"Nombre de lignes/colonnes différent: Votre requête ({df_user.shape}) vs Solution ({df_solution.shape})")
-            if list(df_user.columns) != list(df_solution.columns):
-                differences.append("Colonnes différentes")
-            elif not df_user.equals(df_solution):
-                differences.append("Valeurs ou ordre des résultats différents")
-
-            return False, "Différences trouvées: " + "; ".join(differences)
-    except Exception as e:
-        return False, f"Erreur lors de la comparaison: {str(e)}"
-
-
-def is_safe_query(query: str) -> Tuple[bool, str]:
+def is_safe_query(query: str) -> tuple[bool, str]:
     """
     Validate if the query is safe to execute.
     Returns a tuple of (is_safe, message).
@@ -160,7 +92,7 @@ def highlight_sql(query: str) -> str:
         'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'AS', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
         'OUTER', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL',
         'PROCEDURE', 'FUNCTION', 'RETURNS', 'RETURN', 'BEGIN', 'END', 'DECLARE', 'SET',
-        'IF', 'ELSE', 'WHILE', 'LANGUAGE', 'PLPGSQL', 'CALL', 'VIEW'
+        'IF', 'ELSE', 'WHILE', 'LANGUAGE', 'PLPGSQL', 'CALL'
     ]
 
     highlighted_query = query
@@ -176,107 +108,117 @@ def highlight_sql(query: str) -> str:
     return highlighted_query
 
 
-def normalize_query(query: str) -> str:
-    """
-    Normalize query for strict comparison:
-    1. Convert to lowercase
-    2. Remove all whitespaces
-    3. Remove semicolons
-    """
-    normalized = query.lower()  # Convert to lowercase
-    normalized = re.sub(r'\s+', '', normalized)  # Remove all whitespaces
-    normalized = normalized.rstrip(';').strip()
-    return normalized
+from supabase import create_client, Client
+import streamlit as st
+import re
 
+# Initialize Supabase client
+url = "https://your_supabase_url"  # Replace with your Supabase URL
+key = "your_supabase_key"  # Replace with your Supabase key
+supabase: Client = create_client(url, key)
 
-def execute_query(query: str) -> Tuple[bool, Union[List[Dict], str], bool]:
-    """
-    Execute a query and return (success, result/error_message, is_select)
-    """
+# Function to normalize and compare two SELECT queries
+def compare_select_queries(query1: str, query2: str) -> bool:
+    # Normalize queries: remove whitespaces, convert to lowercase
+    def normalize_query(query: str) -> str:
+        normalized = query.lower()
+        normalized = re.sub(r'\s+', '', normalized)
+        normalized = normalized.rstrip(';').strip()
+        return normalized
+
+    # Normalize both queries
+    normalized_query1 = normalize_query(query1)
+    normalized_query2 = normalize_query(query2)
+
+    # Compare normalized queries
+    return normalized_query1 == normalized_query2
+
+# Function to execute and compare outputs of two SELECT queries using Supabase
+def execute_and_compare(query1: str, query2: str) -> bool:
     try:
-        is_select = query.strip().upper().startswith("SELECT")
-        is_create_view = query.strip().upper().startswith("CREATE VIEW")
+        # Execute the first query
+        response1 = supabase.rpc("execute_returning_sql", {"query_text": query1}).execute()
+        result1 = response1.data if hasattr(response1, 'data') else []
 
-        if is_create_view:
-            # Execute CREATE VIEW without comparison
-            response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
-            return True, "Vue créée avec succès", False
-        elif is_select:
-            response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
-            return True, response.data if hasattr(response, 'data') else [], True
-        else:
-            response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
-            return True, "Requête exécutée avec succès", False
-    except Exception as e:
-        return False, str(e), is_select
+        # Execute the second query
+        response2 = supabase.rpc("execute_returning_sql", {"query_text": query2}).execute()
+        result2 = response2.data if hasattr(response2, 'data') else []
 
-
-def is_query_correct(user_query: str, selected_question: str) -> Tuple[bool, str]:
-    """
-    Enhanced query verification that checks both syntax and results
-    """
-    try:
-        # Get the solution query
-        response = supabase.table("questions").select("solution").eq("question", selected_question).execute()
-        if not hasattr(response, 'data') or not response.data:
-            return False, "Solution non trouvée"
-
-        solution_query = response.data[0]['solution']
-
-        # For CREATE VIEW queries, just check normalized text
-        if user_query.strip().upper().startswith("CREATE VIEW"):
-            normalized_user = normalize_query(user_query)
-            normalized_solution = normalize_query(solution_query)
-            return normalized_user == normalized_solution, "Vérification syntaxique uniquement pour CREATE VIEW"
-
-        # For SELECT queries, execute both and compare results
-        success_user, result_user, is_select_user = execute_query(user_query)
-        if not success_user:
-            return False, f"Erreur dans votre requête: {result_user}"
-
-        success_solution, result_solution, is_select_solution = execute_query(solution_query)
-        if not success_solution:
-            return False, f"Erreur dans la solution: {result_solution}"
-
-        if is_select_user and is_select_solution:
-            is_equal, message = compare_query_results(result_user, result_solution)
-            return is_equal, message
-
-        return False, "Type de requête non supporté pour la comparaison"
+        # Compare the outputs (assuming both are lists of dicts)
+        return result1 == result2
 
     except Exception as e:
-        return False, f"Erreur lors de la vérification: {str(e)}"
+        st.error(f"Error executing queries: {str(e)}")
+        return False
 
+# Function to determine if a query is SELECT or CREATE VIEW
+def is_select_or_create_view(query: str) -> str:
+    query_upper = query.strip().upper()
+    if query_upper.startswith("SELECT"):
+        return "SELECT"
+    elif query_upper.startswith("CREATE VIEW"):
+        return "CREATE VIEW"
+    return "OTHER"
 
-def fetch_questions():
-    """
-    Fetch questions from Supabase
-    """
-    try:
-        response = supabase.table("questions").select("question").execute()
-        if hasattr(response, 'data') and response.data:
-            return [q['question'] for q in response.data]
-        return []
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération des questions : {str(e)}")
-        return []
-
-
-# Main application layout
+# Streamlit application layout
 st.markdown('<h1 class="title">Data AI Lab - Éditeur de requêtes SQL</h1>', unsafe_allow_html=True)
 
-# Session state initialization
-if 'submitted_queries' not in st.session_state:
-    st.session_state.submitted_queries = []
+# Placeholder for fetching questions (you can implement your logic here)
+def fetch_questions():
+    return ["Question 1", "Question 2", "Question 3"]  # Replace with actual fetching logic
 
-# Fetch and display questions
+# Fetch questions at the start
 questions = fetch_questions()
+
+# Dropdown for selecting questions
 selected_question = st.selectbox(
     "Sélectionnez une question :",
     ["Choisissez une question"] + questions
 )
 
-# Query input area
+# Text area for SQL queries
+query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input",
+                     help="Écrivez votre requête SQL ici. Soyez attentif aux opérations sensibles.")
+
+# Example second query for comparison (this could be fetched from a database or user input)
+second_query = st.text_area("Entrez la deuxième requête SQL pour comparaison :", height=200, key="sql_input_comparison",
+                             help="Entrez une autre requête SQL à comparer avec la première.")
+
+# Check if query is SELECT or CREATE VIEW and apply logic accordingly
+query_type = is_select_or_create_view(query)
+if query_type == "SELECT":
+    if compare_select_queries(query, second_query):
+        st.success("Les requêtes SELECT sont structurellement identiques!")
+    else:
+        if execute_and_compare(query, second_query):
+            st.success("Les sorties des requêtes SELECT sont identiques!")
+        else:
+            st.error("Les sorties des requêtes SELECT sont différentes.")
+elif query_type == "CREATE VIEW":
+    st.info("Les requêtes CREATE VIEW ne sont pas modifiées ou comparées.")
+else:
+    st.warning("Les requêtes qui ne sont ni SELECT ni CREATE VIEW ne sont pas traitées.")
+
+# The rest of the code continues unchanged
+
+
+# Streamlit application layout
+st.markdown('<h1 class="title">Data AI Lab - Éditeur de requêtes SQL</h1>', unsafe_allow_html=True)
+
+# Session state to store submitted queries
+if 'submitted_queries' not in st.session_state:
+    st.session_state.submitted_queries = []
+
+# Fetch questions at the start
+questions = fetch_questions()
+
+# Dropdown for selecting questions
+selected_question = st.selectbox(
+    "Sélectionnez une question :",
+    ["Choisissez une question"] + questions
+)
+
+# Text area for SQL queries with syntax highlighting
 query = st.text_area("Entrez votre requête SQL :", height=200, key="sql_input",
                      help="Écrivez votre requête SQL ici. Soyez attentif aux opérations sensibles.")
 
@@ -288,34 +230,36 @@ if query:
         </div>
     """, unsafe_allow_html=True)
 
-# Try Query button
+# Try Query functionality
 if st.button("Testez la requête", help="Exécutez la requête pour voir les résultats"):
+    # Check if a question is selected
     if selected_question == "Choisissez une question":
         st.warning("Veuillez sélectionner une question.")
     else:
-        # Check if query is safe
-        is_safe, safety_message = is_safe_query(query)
-        if not is_safe:
-            st.error(safety_message)
+        # Check if query is correct
+        if is_query_correct(query, selected_question):
+            st.success("Requête correcte !")
         else:
-            # Execute and verify the query
-            is_correct, message = is_query_correct(query, selected_question)
-            if is_correct:
-                st.success(f"Requête correcte! {message}")
-            else:
-                st.error(f"Requête incorrecte: {message}")
+            st.error("La requête ne correspond pas à la solution attendue.")
 
-            # Execute and show results
-            success, result, is_select = execute_query(query)
-            if success:
-                if isinstance(result, list):
-                    st.table(result)
+        # Execute the query
+        is_safe, message = is_safe_query(query)
+        if not is_safe:
+            st.error(message)
+        else:
+            try:
+                if query.strip().upper().startswith("SELECT"):
+                    response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
                 else:
-                    st.info(result)
-            else:
-                st.error(f"Erreur d'exécution: {result}")
+                    response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
 
-# Submit Query button
+                if hasattr(response, 'data') and response.data:
+                    st.table(response.data)
+
+            except Exception as e:
+                st.error(f"Erreur : {str(e)}")
+
+# Submit Query functionality
 if st.button("Soumettre la requête", help="Sauvegarder la requête pour révision"):
     is_safe, message = is_safe_query(query)
     if not is_safe:
@@ -323,11 +267,12 @@ if st.button("Soumettre la requête", help="Sauvegarder la requête pour révisi
     else:
         try:
             st.session_state.submitted_queries.append(query)
-            st.success(f"La requête a été envoyée !")
+            st.success(f"La requête '{query}' a été envoyée !")
+
         except Exception as e:
             st.error(f"Erreur dans l'envoi de la requête : {str(e)}")
 
-# Display submitted queries
+# Display submitted queries with syntax highlighting
 if st.session_state.submitted_queries:
     st.markdown("### Requêtes envoyées")
     for idx, submitted_query in enumerate(st.session_state.submitted_queries, 1):
@@ -339,7 +284,7 @@ if st.session_state.submitted_queries:
             </div>
         """, unsafe_allow_html=True)
 
-# Clear submitted queries button
+# Optional: Clear submitted queries
 if st.button("Éffacer les requêtes soumises"):
     st.session_state.submitted_queries = []
     st.rerun()
