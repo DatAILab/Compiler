@@ -3,11 +3,14 @@ import streamlit as st
 import re
 import pandas as pd
 from typing import Tuple, Union, List, Dict, Any
+import uuid
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ21pcHlpcnB6YXJoaG1paHhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2NzQ2MDEsImV4cCI6MjA0NzI1MDYwMX0.LNMUqA0-t6YtUKP6oOTXgVGYLu8Tpq9rMhH388SX4bI"
 supabase: Client = create_client(url, key)
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
 
 # Enhanced Custom CSS for Professional Design
 st.markdown("""
@@ -315,7 +318,8 @@ if st.button("Testez la requête"):
         if not is_safe:
             st.error(safety_message)
         else:
-            is_correct, message = is_query_correct(query, selected_question)
+            is_correct, message = is_query_correct(query, selected_question, st.session_state.user_id)
+
 
             # Display result status
             if is_correct:
