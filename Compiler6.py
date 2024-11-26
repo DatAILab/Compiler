@@ -255,7 +255,7 @@ def execute_query(query: str, **kwargs) -> Tuple[bool, Union[List[Dict], str], b
         return False, str(e), is_create_view
 
 
-def is_query_correct(user_query: str, selected_question: str) -> Tuple[bool, str]:
+def is_query_correct(user_query: str, selected_question: str, user_id: str = None) -> Tuple[bool, str]:
     """
     Enhanced query verification
     """
@@ -274,7 +274,9 @@ def is_query_correct(user_query: str, selected_question: str) -> Tuple[bool, str
             return normalized_user == normalized_solution, "Vérification syntaxique uniquement pour CREATE VIEW"
 
         # Handle SELECT queries
-        success_user, result_user, is_select_user = execute_query(user_query)
+        # Pass user_id to execute_query if available
+        execute_kwargs = {"user_id": user_id} if user_id else {}
+        success_user, result_user, is_select_user = execute_query(user_query, **execute_kwargs)
         if not success_user:
             return False, f"Erreur dans votre requête: {result_user}"
 
