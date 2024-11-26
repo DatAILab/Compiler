@@ -192,25 +192,48 @@ def normalize_query(query: str) -> str:
     return normalized
 
 
-def execute_query(query: str) -> Tuple[bool, Union[List[Dict], str], bool]:
+def execute_query(query: str, **kwargs) -> Tuple[bool, Union[List[Dict], str], bool]:
     """
-    Execute a query and return results. Handle errors gracefully.
+    Execute a query and return results. Handle errors gracefully with optional user-specific views.
+
+    :param query: SQL query to execute
+    :param kwargs: Optional keyword arguments (e.g., user_id)
+    :return: Tuple of (success, result, is_select_query)
     """
     try:
-        is_select = query.strip().upper().startswith("SELECT")
-        is_create_view = query.strip().upper().startswith("CREATE VIEW")
+        user_id = kwargs.get('user_id')
+
+        # Normalize query to uppercase for consistent checking
+        query_upper = query.strip().upper()
+
+        # Check if it's a CREATE VIEW query
+        is_create_view = query_upper.startswith("CREATE VIEW")
 
         if is_create_view:
-            # Check if the view already exists
+            # Extract original view name
             view_name = query.split()[2]
-            response = supabase.rpc("execute_returning_sql", {"query_text": f"SELECT to_regclass('{view_name}')"}).execute()
+
+            # If user_id is provided, modify the view name to be user-specific
+            if user_id:
+                user_specific_view_name = f"{user_id}_{view_name}"
+
+                # Replace the original view name in the query with the user-specific name
+                query = query.replace(view_name, user_specific_view_name, 1)
+                view_name = user_specific_view_name
+
+            # Check if the view already exists
+            response = supabase.rpc("execute_returning_sql",
+                                    {"query_text": f"SELECT to_regclass('{view_name}')"}).execute()
             if hasattr(response, 'data') and response.data and response.data[0]['to_regclass']:
-                return True, f"", False
+                # If view exists, drop it first to allow recreation
+                drop_query = f"DROP VIEW IF EXISTS {view_name}"
+                supabase.rpc("execute_non_returning_sql", {"query_text": drop_query}).execute()
 
             # Execute the CREATE VIEW query
             response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
-            return True, "Vue créée avec succès", False
-        elif is_select:
+            return True, f"Vue {view_name} créée avec succès", False
+
+        elif query_upper.startswith("SELECT"):
             response = supabase.rpc("execute_returning_sql", {"query_text": query}).execute()
             if not hasattr(response, 'data'):
                 return True, [], True
@@ -223,11 +246,13 @@ def execute_query(query: str) -> Tuple[bool, Union[List[Dict], str], bool]:
                 result = response.data
 
             return True, result, True
+
         else:
             response = supabase.rpc("execute_non_returning_sql", {"query_text": query}).execute()
             return True, "Requête exécutée avec succès", False
+
     except Exception as e:
-        return False, str(e), is_select
+        return False, str(e), is_create_view
 
 
 def is_query_correct(user_query: str, selected_question: str) -> Tuple[bool, str]:
