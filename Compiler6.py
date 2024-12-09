@@ -259,11 +259,15 @@ def execute_query(query: str, **kwargs) -> Tuple[bool, Union[List[Dict], str], b
         return False, str(e), is_create_view
 
 
+
 def is_query_correct(user_query: str, selected_question: str, user_id: str = None) -> Tuple[bool, str]:
     """
     Enhanced query verification
     """
     try:
+        # Remove trailing semicolon
+        user_query = user_query.rstrip(';')
+
         # Get the solution query
         response = supabase.table("questions").select("question", "solution").eq("question", selected_question).execute()
         if not hasattr(response, 'data') or not response.data:
