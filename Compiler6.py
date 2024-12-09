@@ -3,6 +3,8 @@ import re
 import pandas as pd
 from typing import Tuple, Union, List, Dict, Any
 import uuid
+from supabase import create_client, Client
+
 
 # Initialize Supabase client
 url = "https://tjgmipyirpzarhhmihxf.supabase.co"
