@@ -187,9 +187,9 @@ def normalize_query(query: str) -> str:
     """
     Normalize query for strict comparison
     """
-    normalized = query.lower()
+    # Remove trailing semicolon before normalization
+    normalized = query.rstrip(';').lower()
     normalized = re.sub(r'\s+', '', normalized)
-    normalized = normalized.rstrip(';').strip()
     return normalized
 
 
@@ -202,6 +202,9 @@ def execute_query(query: str, **kwargs) -> Tuple[bool, Union[List[Dict], str], b
     :return: Tuple of (success, result, is_select_query)
     """
     try:
+        # Remove trailing semicolon if present
+        query = query.rstrip(';')
+
         user_id = kwargs.get('user_id')
 
         # Normalize query to uppercase for consistent checking
